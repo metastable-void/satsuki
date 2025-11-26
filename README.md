@@ -129,37 +129,52 @@ All API endpoints return JSON.
 
 #### `GET /health`
 
-Simple liveness probe that returns `{"status":"ok"}`. Useful for load balancers or the bundled frontend status widget.
+Returns `{"status":"ok"}` so load balancers and the bundled frontend can verify that the process is alive. This endpoint never touches the database or PowerDNS.
 
 #### `POST /api/signup`
 
-Register a new subdomain.
+Registers a new subdomain. The payload must pass `validate_subdomain_name`, cannot appear in the disallowed list, and the password is Argon2-hashed before storage.
 
 ```json
 {
   "subdomain": "alice",
-  "password": "secret"
+  "password": "supers3cret"
 }
 ```
+
+When the request succeeds:
+
+1. A zone is created on the sub-PDNS instance.
+2. Apex NS + SOA RRsets inside that zone are replaced with the configured internal values.
+3. The parent/base PDNS zone receives an NS delegation.
+4. The SQLite row is inserted.
+
+Failures during steps (2)–(4) trigger best-effort cleanup of both PDNS instances. Duplicate subdomains return HTTP 409.
 
 #### `POST /api/signin`
 
-Verifies user credentials.
+Checks credentials and updates `last_login_at` when successful. Response body is `{"ok": true}` on success and `401` on failures (no session cookies are issued—the caller stores Basic Auth credentials).
 
 ```json
 {
   "subdomain": "alice",
-  "password": "secret"
+  "password": "supers3cret"
 }
 ```
 
-#### `GET /api/subdomain/check?name=alice`
+#### `GET /api/subdomain/check?name=<label>`
 
-Returns whether subdomain is available.
+Validates the label and reports availability:
+
+```json
+{ "available": true }
+```
+
+Reserved labels (e.g. `www`, `mail`, `localhost`, …​) are treated as unavailable even if they are not in the database.
 
 ### Authenticated Endpoints
 
-These require:
+All authenticated endpoints require:
 
 ```
 Authorization: Basic base64("subdomain:password")
@@ -167,25 +182,45 @@ Authorization: Basic base64("subdomain:password")
 
 #### `GET /api/zone`
 
-Returns RRsets (except protected apex NS).
+Returns every RRset for the user’s zone **except** the apex NS RRset, which is managed by the NS-mode endpoints. Example:
+
+```json
+[
+  {
+    "name": "www.alice.example.com.",
+    "rrtype": "A",
+    "ttl": 300,
+    "content": "203.0.113.5",
+    "priority": null
+  }
+]
+```
 
 #### `PUT /api/zone`
 
-Replaces all RRsets for the zone.
+Replaces the submitted RRsets. Records are grouped by `(name, rrtype)` and each group must share the same TTL. Apex NS and SOA changes are rejected to keep the NS-mode flow authoritative.
 
 ```json
 {
   "records": [
-    { "name": "www.alice.example.com.", "rrtype": "A", "ttl": 300, "content": "203.0.113.5" }
+    {
+      "name": "www.alice.example.com.",
+      "rrtype": "A",
+      "ttl": 600,
+      "content": "203.0.113.5",
+      "priority": null
+    }
   ]
 }
 ```
 
 #### `POST /api/ns-mode/internal`
 
-Switch back to internal NS.
+Replaces the parent-zone delegation with the configured internal NS values and clears any stored external NS details in the database. Use this to “bring the zone home” after previously pointing it to third-party nameservers.
 
 #### `POST /api/ns-mode/external`
+
+Switches the parent-zone delegation to user-provided nameservers. The payload must contain 1–6 FQDNs that end with a dot:
 
 ```json
 {
@@ -193,9 +228,11 @@ Switch back to internal NS.
 }
 ```
 
+The accepted NS list is stored in SQLite so the UI can reflect the user’s current configuration.
+
 #### `GET /api/profile`
 
-Returns user settings:
+Returns the logged-in user’s metadata:
 
 ```json
 {
@@ -205,6 +242,8 @@ Returns user settings:
   "external_ns2": null
 }
 ```
+
+Additional `external_ns3`–`external_ns6` values are persisted in the database, but only the first two are exposed today because the UI design only surfaces two slots.
 
 ---
 
