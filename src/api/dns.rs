@@ -31,7 +31,10 @@ pub async fn get_zone(
 
     if let Some(rrsets) = zone.rrsets {
         for rr in rrsets {
-            // skip apex NS; keep these under NS-mode control
+            // skip apex NS and SOA; keep these under server control
+            if rr.rrtype.eq_ignore_ascii_case("SOA") {
+                continue;
+            }
             if rr.rrtype.eq_ignore_ascii_case("NS") && rr.name.eq_ignore_ascii_case(&zone_name) {
                 continue;
             }
