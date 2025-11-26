@@ -1,9 +1,33 @@
+use std::borrow::Cow;
+
+pub const DEFAULT_DISALLOWED_SUBDOMAINS: &[&str] = &[
+    // Common service labels that should remain reserved for infrastructure hosts
+    "www",
+    "mail",
+    "email",
+    "ftp",
+    "smtp",
+    "imap",
+    "pop",
+    "pop3",
+    "mx",
+    "ns",
+    "autodiscover",
+    "autoconfig",
+    // RFC 2606 / 6761 special-use labels
+    "example",
+    "invalid",
+    "localhost",
+    "test",
+];
+
 #[derive(Clone)]
 pub struct AppConfig {
     pub base_domain: String,
     pub internal_ns: Vec<String>, // "ns1.example.net.", ...
     pub internal_main_ns: String, // "ns1.example.net.", used in SOA
     pub internal_contact: String, // "hostmaster.example.net.", used in SOA
+    pub disallowed_subdomains: Vec<String>,
 }
 
 impl AppConfig {
@@ -20,5 +44,25 @@ impl AppConfig {
     /// Fully-qualified user zone name for the provided label.
     pub fn user_zone_name(&self, subdomain: &str) -> String {
         format!("{}.{}.", subdomain, self.base_domain_root())
+    }
+
+    pub fn is_disallowed_subdomain(&self, label: &str) -> bool {
+        let needle = label.to_ascii_lowercase();
+        self.effective_disallowed_subdomains()
+            .iter()
+            .any(|reserved| reserved.eq_ignore_ascii_case(&needle))
+    }
+
+    pub fn effective_disallowed_subdomains(&self) -> Cow<'_, [String]> {
+        if self.disallowed_subdomains.is_empty() {
+            Cow::Owned(
+                DEFAULT_DISALLOWED_SUBDOMAINS
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
+            )
+        } else {
+            Cow::Borrowed(&self.disallowed_subdomains)
+        }
     }
 }

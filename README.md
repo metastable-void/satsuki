@@ -114,6 +114,11 @@ User-provided subdomain labels (e.g., `alice` in `alice.example.com`) must satis
 
 These rules avoid ambiguous DNS behavior and ensure safety.
 
+### Reserved Subdomain Names
+
+A small set of infrastructure-friendly labels (e.g. `www`, `mail`, `ftp`, `smtp`, `email`) plus the RFC 2606/6761 special-use names (`example`, `invalid`, `localhost`, `test`) are blocked by default.  
+Override or extend this list through `AppConfig::disallowed_subdomains` if you need different policies.
+
 ---
 
 ## API Overview

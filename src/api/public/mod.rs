@@ -23,6 +23,13 @@ pub async fn signup(
     crate::validation::validate_subdomain_name(&req.subdomain)
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?;
 
+    if state.config.is_disallowed_subdomain(&req.subdomain) {
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "requested subdomain is reserved".into(),
+        ));
+    }
+
     // 2) check if exists
     if user_repo::exists(&state.db, &req.subdomain)
         .await
@@ -144,6 +151,10 @@ pub async fn check_subdomain(
     };
 
     validate_subdomain_name(name).map_err(|e| AppError::BadRequest(e.to_string()))?;
+
+    if state.config.is_disallowed_subdomain(name) {
+        return Err(AppError::bad_request("requested subdomain is reserved"));
+    }
 
     let exists = user_repo::exists(&state.db, name)
         .await
