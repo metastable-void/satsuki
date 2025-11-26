@@ -76,6 +76,13 @@ pub async fn put_zone(
             .map_err(|msg| (axum::http::StatusCode::BAD_REQUEST, msg))?;
         let rrtype = record.rrtype.to_uppercase();
 
+        if rrtype == "SOA" {
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                "SOA records are managed automatically and cannot be modified".into(),
+            ));
+        }
+
         if rrtype == "NS" && owner.eq_ignore_ascii_case(&zone_name) {
             return Err((
                 axum::http::StatusCode::BAD_REQUEST,
