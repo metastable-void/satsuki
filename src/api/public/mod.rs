@@ -51,27 +51,20 @@ pub async fn signup(
     let zone_name = state.config.user_zone_name(&req.subdomain);
     let parent_zone = state.config.parent_zone_name();
 
-    // create zone in sub-PDNS
-    let z = PdnsZoneCreate {
-        name: zone_name.clone(),
-        kind: "Native".into(),
-        nameservers: state.config.internal_ns.clone(),
-    };
-    state.sub_pdns.create_zone(&z).await.map_err(internal)?;
-
+    
     let sub_zone_rrsets = vec![
         build_apex_ns_rrset(&state.config, &zone_name),
         build_apex_soa_rrset(&state.config, &zone_name),
     ];
 
-    if let Err(err) = state
-        .sub_pdns
-        .patch_rrsets(&zone_name, &sub_zone_rrsets)
-        .await
-    {
-        cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
-        return Err(internal(err));
-    }
+    // create zone in sub-PDNS
+    let z = PdnsZoneCreate {
+        name: zone_name.clone(),
+        kind: "Native".into(),
+        nameservers: state.config.internal_ns.clone(),
+        rrsets: sub_zone_rrsets,
+    };
+    state.sub_pdns.create_zone(&z).await.map_err(internal)?;
 
     // 4) create NS delegation in base-PDNS
     if let Err(err) = state
