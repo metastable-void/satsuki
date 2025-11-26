@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZone {
-    pub id: String,   // "/servers/localhost/zones/example.com."
+    pub id: String,   // "example.com."
     pub name: String, // "example.com."
     #[serde(rename = "type")]
     pub zone_type: String, // "Zone"
@@ -23,6 +23,7 @@ pub struct PdnsRrset {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsRecord {
     pub content: String, // "192.0.2.1" or "ns1.example.net."
+    #[serde(default)]
     pub disabled: bool,
 }
 
