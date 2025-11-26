@@ -1,41 +1,85 @@
-import { useMemo, useState } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from "react-router-dom";
+import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import LandingPage from "./pages/Landing.js";
+import ManagePage from "./pages/Manage.js";
+import {
+  Credentials,
+  loadCredentials,
+  storeCredentials,
+} from "./lib/api.js";
+
+interface AuthValue {
+  credentials: Credentials | null;
+  signIn: (creds: Credentials) => void;
+  signOut: () => void;
+}
+
+const AuthContext = createContext<AuthValue | undefined>(undefined);
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+  return ctx;
+};
+
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [credentials, setCredentials] = useState<Credentials | null>(() =>
+    loadCredentials(),
+  );
+
+  const value = useMemo<AuthValue>(() => {
+    return {
+      credentials,
+      signIn(creds) {
+        setCredentials(creds);
+        storeCredentials(creds);
+      },
+      signOut() {
+        setCredentials(null);
+        storeCredentials(null);
+      },
+    };
+  }, [credentials]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { credentials } = useAuth();
+  const location = useLocation();
+
+  if (!credentials) {
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
 
 export default function App() {
-  const [baseUrl, setBaseUrl] = useState("http://localhost:8080");
-  const [status, setStatus] = useState<string | null>(null);
-
-  const healthEndpoint = useMemo(() => `${baseUrl.replace(/\/$/, "")}/health`, [baseUrl]);
-
   return (
-    <main className="app">
-      <header>
-        <h1>Satsuki Frontend Placeholder</h1>
-        <p>Wire this UI to the Rust APIs as needed.</p>
-      </header>
-
-      <section>
-        <label>
-          API base URL
-          <input
-            value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://example.com"
-          />
-        </label>
-        <button
-          onClick={async () => {
-            try {
-              const res = await fetch(healthEndpoint, { mode: "cors" });
-              setStatus(`${res.status} ${res.statusText}`);
-            } catch (err) {
-              setStatus(String(err));
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/manage"
+            element={
+              <RequireAuth>
+                <ManagePage />
+              </RequireAuth>
             }
-          }}
-        >
-          Probe /health
-        </button>
-        {status && <p className="status">Last response: {status}</p>}
-      </section>
-    </main>
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
