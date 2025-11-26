@@ -10,6 +10,7 @@ include = [
     "LICENSE.*",
     "src/**",
     "migrations/**",
+    "dist/**",
 ]
 
 authors = ["metastable-void"]
