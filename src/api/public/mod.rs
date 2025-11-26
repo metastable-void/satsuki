@@ -266,7 +266,7 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
 fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     let mname = config.internal_main_ns.clone();
     let contact = config.internal_contact.clone();
-    let serial = Utc::now().format("%Y%m%d%H%M").to_string();
+    let serial = Utc::now().format("%Y%m%d01").to_string();
 
     let content = format!(
         "{} {} {} {} {} {} {}",
