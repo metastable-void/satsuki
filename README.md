@@ -127,6 +127,10 @@ All API endpoints return JSON.
 
 ### Public Endpoints
 
+#### `GET /health`
+
+Simple liveness probe that returns `{"status":"ok"}`. Useful for load balancers or the bundled frontend status widget.
+
 #### `POST /api/signup`
 
 Register a new subdomain.

@@ -4,9 +4,10 @@ pub mod public;
 
 use crate::SharedState;
 use axum::{
-    Extension, Router,
+    Extension, Json, Router,
     routing::{get, post},
 };
+use serde::Serialize;
 use tower_http::cors::{Any, CorsLayer};
 
 pub fn create_router(state: SharedState) -> Router {
@@ -18,6 +19,7 @@ pub fn create_router(state: SharedState) -> Router {
         .allow_headers(Any);
 
     Router::new()
+        .route("/health", get(health_check))
         // public
         .route("/api/signup", post(public::signup))
         .route("/api/signin", post(public::signin))
@@ -29,4 +31,13 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/profile", get(profile::get_profile))
         .layer(cors)
         .layer(Extension(state))
+}
+
+#[derive(Serialize)]
+struct HealthResponse {
+    status: &'static str,
+}
+
+async fn health_check() -> Json<HealthResponse> {
+    Json(HealthResponse { status: "ok" })
 }
