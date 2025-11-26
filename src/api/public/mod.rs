@@ -226,12 +226,6 @@ pub async fn list_ns_records(
 }
 
 const NS_TTL: u32 = 300;
-const SOA_TTL: u32 = 3600;
-const SOA_REFRESH: u32 = 7200;
-const SOA_RETRY: u32 = 900;
-const SOA_EXPIRE: u32 = 1_209_600;
-const SOA_MINIMUM: u32 = 300;
-
 fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     PdnsRrset {
         name: zone_name.to_string(),
@@ -246,29 +240,6 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
                 disabled: false,
             })
             .collect(),
-        comments: Vec::new(),
-    }
-}
-
-fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
-    let mname = config.internal_main_ns.clone();
-    let contact = config.internal_contact.clone();
-    let serial = "1";
-
-    let content = format!(
-        "{} {} {} {} {} {} {}",
-        mname, contact, serial, SOA_REFRESH, SOA_RETRY, SOA_EXPIRE, SOA_MINIMUM
-    );
-
-    PdnsRrset {
-        name: zone_name.to_string(),
-        rrtype: "SOA".into(),
-        ttl: SOA_TTL,
-        changetype: Some("REPLACE".into()),
-        records: vec![PdnsRecord {
-            content,
-            disabled: false,
-        }],
         comments: Vec::new(),
     }
 }
