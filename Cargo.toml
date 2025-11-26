@@ -3,6 +3,22 @@ name = "satsuki"
 version = "0.1.0"
 edition = "2024"
 
+include = [
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE.*",
+    "src/**",
+    "migrations/**",
+]
+
+authors = ["metastable-void"]
+description = "A Rust-based web frontend for delegating and managing subdomains under a configured base domain using PowerDNS. Users can register a subdomain, authenticate using Basic Auth, and manage DNS records through a simple API (to be consumed by a TypeScript web UI)."
+license = "Apache-2.0 OR MPL-2.0"
+readme = "README.md"
+repository = "https://github.com/metastable-void/satsuki"
+homepage = "https://github.com/metastable-void/satsuki"
+
 [dependencies]
 anyhow = "1.0.100"
 argon2 = "0.5.3"
