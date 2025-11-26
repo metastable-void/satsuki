@@ -13,7 +13,7 @@
     "isolatedModules": true,
     "rootDir": "./frontend",
     "outDir": "./dist",
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"]
   },
   "include": [
     "frontend/env.d.ts",
