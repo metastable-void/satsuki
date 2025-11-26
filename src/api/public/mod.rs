@@ -5,7 +5,6 @@ use crate::powerdns::types::{PdnsRecord, PdnsRrset, PdnsZoneCreate};
 use crate::validation::validate_subdomain_name;
 use crate::{SharedState, auth::hash_password};
 use axum::{Extension, Json};
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 
@@ -52,17 +51,12 @@ pub async fn signup(
     let parent_zone = state.config.parent_zone_name();
 
     
-    let sub_zone_rrsets = vec![
-        build_apex_ns_rrset(&state.config, &zone_name),
-        build_apex_soa_rrset(&state.config, &zone_name),
-    ];
-
     // create zone in sub-PDNS
     let z = PdnsZoneCreate {
         name: zone_name.clone(),
         kind: "Native".into(),
         nameservers: state.config.internal_ns.clone(),
-        rrsets: sub_zone_rrsets,
+        rrsets: vec![],
     };
     state.sub_pdns.create_zone(&z).await.map_err(internal)?;
 
@@ -259,7 +253,7 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
 fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     let mname = config.internal_main_ns.clone();
     let contact = config.internal_contact.clone();
-    let serial = Utc::now().format("%Y%m%d%H%M").to_string();
+    let serial = "1";
 
     let content = format!(
         "{} {} {} {} {} {} {}",
