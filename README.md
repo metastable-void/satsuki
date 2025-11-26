@@ -278,12 +278,11 @@ CREATE TABLE IF NOT EXISTS users (
 ### Requirements
 
 * Rust stable
-* SQLite3
 * PowerDNS running (2 instances ideally)
 * `sqlx-cli` (optional for migrations)
-* Node.js 18+ (for the React/Vite frontend under `frontend/`)
+* Node.js 18+ (for the React/Vite frontend under `frontend/`) (Optional)
 
-### Frontend (React + Vite)
+### Frontend (React + Vite) (Optional)
 
 ```sh
 npm install
