@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZone {
-    pub id: String,   // "example.com."
+    pub id: String,   // "/api/.../zones/example.com."
     pub name: String, // "example.com."
-    #[serde(rename = "type")]
-    pub zone_type: String, // "Zone"
+    #[serde(rename = "type", default)]
+    pub zone_type: Option<String>, // "Zone"
     pub kind: String, // "Native", etc.
     pub rrsets: Option<Vec<PdnsRrset>>,
 }
