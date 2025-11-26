@@ -1060,6 +1060,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mirams-proc-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f57c87d3c00611fdb24acbb54c5c21f7880d3e965401e1b03eb53388ba4db0c"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1625,6 +1635,7 @@ dependencies = [
  "base64",
  "chrono",
  "lazy_static",
+ "mirams-proc-macros",
  "rand_core 0.6.4",
  "regex",
  "reqwest",
