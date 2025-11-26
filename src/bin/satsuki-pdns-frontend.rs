@@ -76,7 +76,8 @@ async fn main() -> Result<()> {
     let spa_routes = get(frontend_handler).head(frontend_handler);
     let app = Router::new()
         .merge(api::create_router(state))
-        .route("/*path", spa_routes);
+        .route("/", spa_routes.clone())
+        .route("/{*path}", spa_routes);
 
     let listener = TcpListener::bind(cli.listen)
         .await
