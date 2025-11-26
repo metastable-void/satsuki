@@ -1,18 +1,19 @@
 // src/auth.rs
 use axum::{
-    extract::{FromRequestParts},
-    http::{request::Parts, StatusCode},
     Extension,
+    extract::FromRequestParts,
+    http::{StatusCode, request::Parts},
 };
+use std::future::Future;
 
+use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use base64::Engine as _;
 use base64::engine::general_purpose::STANDARD as BASE64;
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use rand_core::OsRng;
-use argon2::password_hash::SaltString;
 
-use crate::db::user_repo::User;
 use crate::SharedState;
+use crate::db::user_repo::User;
 
 pub struct Authenticated(pub User);
 
@@ -22,12 +23,16 @@ where
 {
     type Rejection = (StatusCode, &'static str);
 
-    fn from_request_parts(parts: &mut Parts, state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> {
+    fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> {
         Box::pin(async move {
             // The state is SharedState via Extension
             let Extension(app_state): axum::extract::Extension<SharedState> =
-                Extension::from_request_parts(parts, state).await
-                .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "missing state"))?;
+                Extension::from_request_parts(parts, state)
+                    .await
+                    .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "missing state"))?;
 
             let auth_header = parts
                 .headers
@@ -72,12 +77,16 @@ where
 pub fn hash_password(plain: &str) -> anyhow::Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    let hash = argon2.hash_password(plain.as_bytes(), &salt).map_err(|_| anyhow::anyhow!("Failed to hash password"))?.to_string();
+    let hash = argon2
+        .hash_password(plain.as_bytes(), &salt)
+        .map_err(|_| anyhow::anyhow!("Failed to hash password"))?
+        .to_string();
     Ok(hash)
 }
 
 pub fn verify_password(hash: &str, plain: &str) -> anyhow::Result<bool> {
-    let parsed = PasswordHash::new(hash).map_err(|_| anyhow::anyhow!("Failed to instantiate PasswordHash"))?;
+    let parsed = PasswordHash::new(hash)
+        .map_err(|_| anyhow::anyhow!("Failed to instantiate PasswordHash"))?;
     Ok(Argon2::default()
         .verify_password(plain.as_bytes(), &parsed)
         .is_ok())

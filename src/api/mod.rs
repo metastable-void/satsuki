@@ -1,13 +1,15 @@
-
-pub mod public;
 pub mod dns;
 pub mod profile;
+pub mod public;
 
-use axum::{Router, routing::{get, post}, Extension};
 use crate::SharedState;
+use axum::{
+    Extension, Router,
+    routing::{get, post},
+};
 
 pub fn create_router(state: SharedState) -> Router {
-    use crate::api::{public, dns, profile};
+    use crate::api::{dns, profile, public};
 
     Router::new()
         // public

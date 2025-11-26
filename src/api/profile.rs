@@ -1,10 +1,11 @@
 // src/api/profile.rs
-use axum::{Json, Extension};
-use serde::{Deserialize, Serialize};
-use crate::{SharedState, auth::Authenticated};
-use crate::powerdns::types::{PdnsRrset, PdnsRecord};
-use crate::db::user_repo;
 use super::public::internal;
+use crate::db::user_repo;
+use crate::powerdns::types::{PdnsRecord, PdnsRrset};
+use crate::validation::validate_fqdn_ascii;
+use crate::{SharedState, auth::Authenticated};
+use axum::{Extension, Json};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 pub struct ProfileDto {
@@ -30,26 +31,35 @@ pub async fn set_ns_internal(
     Authenticated(user): Authenticated,
     Extension(state): Extension<SharedState>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
-    let zone_name = format!("{}.{}.", user.subdomain, state.config.base_domain);
+    let zone_name = state.config.user_zone_name(&user.subdomain);
+    let parent_zone = state.config.parent_zone_name();
 
     let ns_rrset = PdnsRrset {
         name: zone_name.clone(),
         rrtype: "NS".into(),
         ttl: 300,
         changetype: Some("REPLACE".into()),
-        records: state.config.internal_ns
+        records: state
+            .config
+            .internal_ns
             .iter()
-            .map(|ns| PdnsRecord { content: ns.clone(), disabled: false })
+            .map(|ns| PdnsRecord {
+                content: ns.clone(),
+                disabled: false,
+            })
             .collect(),
     };
-    state.base_pdns
-        .patch_rrsets(&state.config.base_domain, &[ns_rrset])
+    state
+        .base_pdns
+        .patch_rrsets(&parent_zone, &[ns_rrset])
         .await
         .map_err(internal)?;
 
-    user_repo::set_external_ns(&state.db, user.id, false, None, None, None, None, None, None)
-        .await
-        .map_err(internal)?;
+    user_repo::set_external_ns(
+        &state.db, user.id, false, None, None, None, None, None, None,
+    )
+    .await
+    .map_err(internal)?;
 
     Ok(Json(serde_json::json!({ "ok": true })))
 }
@@ -65,32 +75,60 @@ pub async fn set_ns_external(
     Json(req): Json<SetExternalNsRequest>,
 ) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     if req.ns.is_empty() {
-        return Err((axum::http::StatusCode::BAD_REQUEST, "at least one NS required".into()));
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "at least one NS required".into(),
+        ));
     }
 
-    let zone_name = format!("{}.{}.", user.subdomain, state.config.base_domain);
+    let zone_name = state.config.user_zone_name(&user.subdomain);
+    let parent_zone = state.config.parent_zone_name();
+
+    if req.ns.len() > 6 {
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "up to six nameservers supported".into(),
+        ));
+    }
+
+    let mut validated_ns = Vec::with_capacity(req.ns.len());
+    for ns in req.ns {
+        if !ns.ends_with('.') {
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                "nameservers must end with '.'".into(),
+            ));
+        }
+        validate_fqdn_ascii(&ns)
+            .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?;
+        validated_ns.push(ns);
+    }
 
     let ns_rrset = PdnsRrset {
         name: zone_name.clone(),
         rrtype: "NS".into(),
         ttl: 300,
         changetype: Some("REPLACE".into()),
-        records: req.ns
+        records: validated_ns
             .iter()
-            .map(|ns| PdnsRecord { content: ns.clone(), disabled: false })
+            .map(|ns| PdnsRecord {
+                content: ns.clone(),
+                disabled: false,
+            })
             .collect(),
     };
-    state.base_pdns
-        .patch_rrsets(&state.config.base_domain, &[ns_rrset])
+    state
+        .base_pdns
+        .patch_rrsets(&parent_zone, &[ns_rrset])
         .await
         .map_err(internal)?;
 
-    let ns1 = req.ns.get(0).cloned();
-    let ns2 = req.ns.get(1).cloned();
-    let ns3 = req.ns.get(2).cloned();
-    let ns4 = req.ns.get(3).cloned();
-    let ns5 = req.ns.get(4).cloned();
-    let ns6 = req.ns.get(5).cloned();
+    let ns1 = validated_ns.get(0).cloned();
+    let ns2 = validated_ns.get(1).cloned();
+    let ns3 = validated_ns.get(2).cloned();
+    let ns4 = validated_ns.get(3).cloned();
+    let ns5 = validated_ns.get(4).cloned();
+    let ns6 = validated_ns.get(5).cloned();
 
     user_repo::set_external_ns(&state.db, user.id, true, ns1, ns2, ns3, ns4, ns5, ns6)
         .await

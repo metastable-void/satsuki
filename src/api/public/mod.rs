@@ -1,11 +1,11 @@
-
-use axum::{Json, Extension};
-use serde::{Deserialize, Serialize};
-use crate::{SharedState, auth::hash_password};
 use crate::db::user_repo;
-use crate::powerdns::types::{PdnsZoneCreate, PdnsRrset, PdnsRecord};
 use crate::error::AppError;
+use crate::powerdns::types::{PdnsRecord, PdnsRrset, PdnsZoneCreate};
 use crate::validation::validate_subdomain_name;
+use crate::{SharedState, auth::hash_password};
+use axum::{Extension, Json};
+use serde::{Deserialize, Serialize};
+use sqlx::Error as SqlxError;
 
 #[derive(Deserialize)]
 pub struct SignupRequest {
@@ -22,12 +22,18 @@ pub async fn signup(
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.to_string()))?;
 
     // 2) check if exists
-    if user_repo::exists(&state.db, &req.subdomain).await.map_err(internal)? {
+    if user_repo::exists(&state.db, &req.subdomain)
+        .await
+        .map_err(internal)?
+    {
         return Err((axum::http::StatusCode::CONFLICT, "already exists".into()));
     }
 
+    let hash = hash_password(&req.password).map_err(internal)?;
+
     // 3) prepare PDNS zone & NS
-    let zone_name = format!("{}.{}.", req.subdomain, state.config.base_domain);
+    let zone_name = state.config.user_zone_name(&req.subdomain);
+    let parent_zone = state.config.parent_zone_name();
 
     // create zone in sub-PDNS
     let z = PdnsZoneCreate {
@@ -43,22 +49,33 @@ pub async fn signup(
         rrtype: "NS".into(),
         ttl: 300,
         changetype: Some("REPLACE".into()),
-        records: state.config.internal_ns
+        records: state
+            .config
+            .internal_ns
             .iter()
-            .map(|ns| PdnsRecord { content: ns.clone(), disabled: false })
+            .map(|ns| PdnsRecord {
+                content: ns.clone(),
+                disabled: false,
+            })
             .collect(),
     };
-    state.base_pdns
-        .patch_rrsets(&state.config.base_domain, &[ns_rrset])
+    if let Err(err) = state
+        .base_pdns
+        .patch_rrsets(&parent_zone, &[ns_rrset])
         .await
-        .map_err(|e| {
-            // TODO: attempt rollback of created zone
-            internal(e)
-        })?;
+    {
+        cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
+        return Err(internal(err));
+    }
 
     // 5) insert into DB
-    let hash = hash_password(&req.password).map_err(internal)?;
-    user_repo::insert(&state.db, &req.subdomain, &hash).await.map_err(internal)?;
+    if let Err(err) = user_repo::insert(&state.db, &req.subdomain, &hash).await {
+        cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
+        if is_unique_violation(&err) {
+            return Err((axum::http::StatusCode::CONFLICT, "already exists".into()));
+        }
+        return Err(internal(err));
+    }
 
     Ok(Json(serde_json::json!({ "ok": true })))
 }
@@ -83,13 +100,21 @@ pub async fn signin(
     let user = user_repo::find_by_subdomain(&state.db, &req.subdomain)
         .await
         .map_err(internal)?
-        .ok_or((axum::http::StatusCode::UNAUTHORIZED, "invalid credentials".into()))?;
+        .ok_or((
+            axum::http::StatusCode::UNAUTHORIZED,
+            "invalid credentials".into(),
+        ))?;
 
     if !verify_password(&user.password_hash, &req.password).map_err(internal)? {
-        return Err((axum::http::StatusCode::UNAUTHORIZED, "invalid credentials".into()));
+        return Err((
+            axum::http::StatusCode::UNAUTHORIZED,
+            "invalid credentials".into(),
+        ));
     }
 
-    // Optional: update last_login_at
+    user_repo::update_last_login(&state.db, user.id)
+        .await
+        .map_err(internal)?;
 
     Ok(Json(serde_json::json!({ "ok": true })))
 }
@@ -113,7 +138,28 @@ pub async fn check_subdomain(
         .await
         .map_err(AppError::internal)?;
 
-    Ok(Json(CheckSubdomainResponse {
-        available: !exists,
-    }))
+    Ok(Json(CheckSubdomainResponse { available: !exists }))
+}
+
+fn is_unique_violation(err: &SqlxError) -> bool {
+    match err {
+        SqlxError::Database(db_err) => db_err.message().contains("UNIQUE"),
+        _ => false,
+    }
+}
+
+async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_name: &str) {
+    let delete_rrset = PdnsRrset {
+        name: zone_name.to_string(),
+        rrtype: "NS".into(),
+        ttl: 300,
+        changetype: Some("DELETE".into()),
+        records: Vec::new(),
+    };
+
+    let _ = state
+        .base_pdns
+        .patch_rrsets(parent_zone, &[delete_rrset])
+        .await;
+    let _ = state.sub_pdns.delete_zone(zone_name).await;
 }

@@ -1,21 +1,20 @@
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZone {
-    pub id: String,           // "/servers/localhost/zones/example.com."
-    pub name: String,         // "example.com."
+    pub id: String,   // "/servers/localhost/zones/example.com."
+    pub name: String, // "example.com."
     #[serde(rename = "type")]
-    pub zone_type: String,    // "Zone"
-    pub kind: String,         // "Native", etc.
+    pub zone_type: String, // "Zone"
+    pub kind: String, // "Native", etc.
     pub rrsets: Option<Vec<PdnsRrset>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsRrset {
-    pub name: String,        // "www.example.com."
+    pub name: String, // "www.example.com."
     #[serde(rename = "type")]
-    pub rrtype: String,      // "A", "NS", ...
+    pub rrtype: String, // "A", "NS", ...
     pub ttl: u32,
     pub changetype: Option<String>, // "REPLACE" / "DELETE" when patching
     pub records: Vec<PdnsRecord>,
@@ -23,14 +22,14 @@ pub struct PdnsRrset {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsRecord {
-    pub content: String,     // "192.0.2.1" or "ns1.example.net."
+    pub content: String, // "192.0.2.1" or "ns1.example.net."
     pub disabled: bool,
 }
 
 // Used when creating a zone
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZoneCreate {
-    pub name: String,     // "sub.base.example.com."
-    pub kind: String,     // "Native"
+    pub name: String,             // "sub.base.example.com."
+    pub kind: String,             // "Native"
     pub nameservers: Vec<String>, // ["ns1.example.net.", "ns2.example.net."]
 }

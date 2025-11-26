@@ -1,6 +1,6 @@
 // src/db/user_repo.rs
 use chrono::{DateTime, Utc};
-use sqlx::{SqlitePool, Row};
+use sqlx::{Row, SqlitePool};
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -20,18 +20,14 @@ pub struct User {
 }
 
 pub async fn exists(db: &SqlitePool, subdomain: &str) -> sqlx::Result<bool> {
-    let cnt: (i64,) =
-        sqlx::query_as("SELECT COUNT(*) FROM users WHERE subdomain = ?")
-            .bind(subdomain)
-            .fetch_one(db)
-            .await?;
+    let cnt: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE subdomain = ?")
+        .bind(subdomain)
+        .fetch_one(db)
+        .await?;
     Ok(cnt.0 > 0)
 }
 
-pub async fn find_by_subdomain(
-    db: &SqlitePool,
-    subdomain: &str,
-) -> sqlx::Result<Option<User>> {
+pub async fn find_by_subdomain(db: &SqlitePool, subdomain: &str) -> sqlx::Result<Option<User>> {
     let row = sqlx::query(
         r#"
         SELECT
@@ -77,11 +73,7 @@ pub async fn find_by_subdomain(
     }))
 }
 
-pub async fn insert(
-    db: &SqlitePool,
-    subdomain: &str,
-    password_hash: &str,
-) -> sqlx::Result<i64> {
+pub async fn insert(db: &SqlitePool, subdomain: &str, password_hash: &str) -> sqlx::Result<i64> {
     let now = Utc::now();
 
     let res = sqlx::query(
@@ -154,10 +146,7 @@ pub async fn set_external_ns(
     Ok(())
 }
 
-pub async fn update_last_login(
-    db: &SqlitePool,
-    user_id: i64,
-) -> sqlx::Result<()> {
+pub async fn update_last_login(db: &SqlitePool, user_id: i64) -> sqlx::Result<()> {
     let now = Utc::now();
     sqlx::query(
         r#"
