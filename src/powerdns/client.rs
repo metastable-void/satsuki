@@ -69,7 +69,9 @@ impl PowerDnsClient {
             .send()
             .await?;
         if !res.status().is_success() {
-            anyhow::bail!("PowerDNS patch_rrsets failed with {}", res.status());
+            let status = res.status();
+            let text = res.text().await.unwrap_or_default();
+            anyhow::bail!("PowerDNS patch_rrsets failed with {} {}", status, text);
         }
         Ok(())
     }

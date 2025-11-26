@@ -42,5 +42,4 @@ pub struct PdnsZoneCreate {
     pub name: String,             // "sub.base.example.com."
     pub kind: String,             // "Native"
     pub nameservers: Vec<String>, // ["ns1.example.net.", "ns2.example.net."]
-    pub rrsets: Vec<PdnsRrset>,
 }

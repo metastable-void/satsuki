@@ -5,6 +5,7 @@ use crate::powerdns::types::{PdnsRecord, PdnsRrset, PdnsZoneCreate};
 use crate::validation::validate_subdomain_name;
 use crate::{SharedState, auth::hash_password};
 use axum::{Extension, Json};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 
@@ -50,15 +51,27 @@ pub async fn signup(
     let zone_name = state.config.user_zone_name(&req.subdomain);
     let parent_zone = state.config.parent_zone_name();
 
-    
     // create zone in sub-PDNS
     let z = PdnsZoneCreate {
         name: zone_name.clone(),
         kind: "Native".into(),
         nameservers: state.config.internal_ns.clone(),
-        rrsets: vec![],
     };
     state.sub_pdns.create_zone(&z).await.map_err(internal)?;
+
+    let sub_zone_rrsets = vec![
+        build_apex_ns_rrset(&state.config, &zone_name),
+        build_apex_soa_rrset(&state.config, &zone_name),
+    ];
+
+    if let Err(err) = state
+        .sub_pdns
+        .patch_rrsets(&zone_name, &sub_zone_rrsets)
+        .await
+    {
+        cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
+        return Err(internal(err));
+    }
 
     // 4) create NS delegation in base-PDNS
     if let Err(err) = state
@@ -226,6 +239,12 @@ pub async fn list_ns_records(
 }
 
 const NS_TTL: u32 = 300;
+const SOA_TTL: u32 = 3600;
+const SOA_REFRESH: u32 = 7200;
+const SOA_RETRY: u32 = 900;
+const SOA_EXPIRE: u32 = 1_209_600;
+const SOA_MINIMUM: u32 = 300;
+
 fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     PdnsRrset {
         name: zone_name.to_string(),
@@ -240,6 +259,29 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
                 disabled: false,
             })
             .collect(),
+        comments: Vec::new(),
+    }
+}
+
+fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
+    let mname = config.internal_main_ns.clone();
+    let contact = config.internal_contact.clone();
+    let serial = Utc::now().format("%Y%m%d%H%M").to_string();
+
+    let content = format!(
+        "{} {} {} {} {} {} {}",
+        mname, contact, serial, SOA_REFRESH, SOA_RETRY, SOA_EXPIRE, SOA_MINIMUM
+    );
+
+    PdnsRrset {
+        name: zone_name.to_string(),
+        rrtype: "SOA".into(),
+        ttl: SOA_TTL,
+        changetype: Some("REPLACE".into()),
+        records: vec![PdnsRecord {
+            content,
+            disabled: false,
+        }],
         comments: Vec::new(),
     }
 }
