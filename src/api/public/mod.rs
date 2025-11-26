@@ -186,6 +186,56 @@ async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_nam
     let _ = state.sub_pdns.delete_zone(zone_name).await;
 }
 
+#[derive(Serialize)]
+pub struct AboutResponse {
+    pub base_domain: String,
+}
+
+pub async fn about(
+    Extension(state): Extension<SharedState>,
+) -> Result<Json<AboutResponse>, (axum::http::StatusCode, String)> {
+    Ok(Json(AboutResponse {
+        base_domain: state.config.base_domain_root().to_string(),
+    }))
+}
+
+#[derive(Serialize)]
+pub struct SubdomainListResponse {
+    pub name: String,
+    pub records: Vec<String>,
+}
+
+pub async fn list_ns_records(
+    Extension(state): Extension<SharedState>,
+) -> Result<Json<Vec<SubdomainListResponse>>, (axum::http::StatusCode, String)> {
+    use std::collections::BTreeMap;
+
+    let parent_zone = state.config.parent_zone_name();
+    let zone = state
+        .base_pdns
+        .get_zone(&parent_zone)
+        .await
+        .map_err(internal)?;
+
+    let mut map: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    if let Some(rrsets) = zone.rrsets {
+        for rr in rrsets
+            .into_iter()
+            .filter(|rr| rr.rrtype.eq_ignore_ascii_case("NS"))
+        {
+            let entry = map.entry(rr.name).or_default();
+            entry.extend(rr.records.into_iter().map(|rec| rec.content));
+        }
+    }
+
+    let mut grouped = Vec::with_capacity(map.len());
+    for (name, records) in map {
+        grouped.push(SubdomainListResponse { name, records });
+    }
+
+    Ok(Json(grouped))
+}
+
 const NS_TTL: u32 = 300;
 const SOA_TTL: u32 = 3600;
 const SOA_REFRESH: u32 = 7200;

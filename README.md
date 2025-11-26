@@ -172,6 +172,31 @@ Validates the label and reports availability:
 
 Reserved labels (e.g. `www`, `mail`, `localhost`, …​) are treated as unavailable even if they are not in the database.
 
+#### `GET /api/about`
+
+Returns basic metadata for the deployment:
+
+```json
+{ "base_domain": "example.com" }
+```
+
+#### `GET /api/subdomain/list`
+
+Fetches the NS RRsets from the base PowerDNS zone and groups them by owner name (including the apex entry). Example response:
+
+```json
+[
+  {
+    "name": "example.com.",
+    "records": ["ns1.example.net.", "ns2.example.net."]
+  },
+  {
+    "name": "custom.example.com.",
+    "records": ["ns1.custom-dns.com.", "ns2.custom-dns.com."]
+  }
+]
+```
+
 ### Authenticated Endpoints
 
 All authenticated endpoints require:
