@@ -1,9 +1,11 @@
+use crate::config::AppConfig;
 use crate::db::user_repo;
 use crate::error::AppError;
 use crate::powerdns::types::{PdnsRecord, PdnsRrset, PdnsZoneCreate};
 use crate::validation::validate_subdomain_name;
 use crate::{SharedState, auth::hash_password};
 use axum::{Extension, Json};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 
@@ -29,6 +31,13 @@ pub async fn signup(
         return Err((axum::http::StatusCode::CONFLICT, "already exists".into()));
     }
 
+    if state.config.internal_ns.is_empty() {
+        return Err((
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "no internal nameservers configured".into(),
+        ));
+    }
+
     let hash = hash_password(&req.password).map_err(internal)?;
 
     // 3) prepare PDNS zone & NS
@@ -43,25 +52,27 @@ pub async fn signup(
     };
     state.sub_pdns.create_zone(&z).await.map_err(internal)?;
 
+    let sub_zone_rrsets = vec![
+        build_apex_ns_rrset(&state.config, &zone_name),
+        build_apex_soa_rrset(&state.config, &zone_name),
+    ];
+
+    if let Err(err) = state
+        .sub_pdns
+        .patch_rrsets(&zone_name, &sub_zone_rrsets)
+        .await
+    {
+        cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
+        return Err(internal(err));
+    }
+
     // 4) create NS delegation in base-PDNS
-    let ns_rrset = PdnsRrset {
-        name: zone_name.clone(),
-        rrtype: "NS".into(),
-        ttl: 300,
-        changetype: Some("REPLACE".into()),
-        records: state
-            .config
-            .internal_ns
-            .iter()
-            .map(|ns| PdnsRecord {
-                content: ns.clone(),
-                disabled: false,
-            })
-            .collect(),
-    };
     if let Err(err) = state
         .base_pdns
-        .patch_rrsets(&parent_zone, &[ns_rrset])
+        .patch_rrsets(
+            &parent_zone,
+            &[build_apex_ns_rrset(&state.config, &zone_name)],
+        )
         .await
     {
         cleanup_partial_signup(&state, &parent_zone, &zone_name).await;
@@ -162,4 +173,50 @@ async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_nam
         .patch_rrsets(parent_zone, &[delete_rrset])
         .await;
     let _ = state.sub_pdns.delete_zone(zone_name).await;
+}
+
+const NS_TTL: u32 = 300;
+const SOA_TTL: u32 = 3600;
+const SOA_REFRESH: u32 = 7200;
+const SOA_RETRY: u32 = 900;
+const SOA_EXPIRE: u32 = 1_209_600;
+const SOA_MINIMUM: u32 = 300;
+
+fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
+    PdnsRrset {
+        name: zone_name.to_string(),
+        rrtype: "NS".into(),
+        ttl: NS_TTL,
+        changetype: Some("REPLACE".into()),
+        records: config
+            .internal_ns
+            .iter()
+            .map(|ns| PdnsRecord {
+                content: ns.clone(),
+                disabled: false,
+            })
+            .collect(),
+    }
+}
+
+fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
+    let mname = config.internal_main_ns.clone();
+    let contact = config.internal_contact.clone();
+    let serial = Utc::now().format("%Y%m%d%H%M").to_string();
+
+    let content = format!(
+        "{} {} {} {} {} {} {}",
+        mname, contact, serial, SOA_REFRESH, SOA_RETRY, SOA_EXPIRE, SOA_MINIMUM
+    );
+
+    PdnsRrset {
+        name: zone_name.to_string(),
+        rrtype: "SOA".into(),
+        ttl: SOA_TTL,
+        changetype: Some("REPLACE".into()),
+        records: vec![PdnsRecord {
+            content,
+            disabled: false,
+        }],
+    }
 }
