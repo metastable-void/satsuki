@@ -98,8 +98,8 @@ pub async fn signup(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
-pub(crate) fn internal<E: std::fmt::Display>(e: E) -> (axum::http::StatusCode, String) {
-    tracing::error!("{e}");
+pub(crate) fn internal<E: std::fmt::Debug + std::fmt::Display>(e: E) -> (axum::http::StatusCode, String) {
+    tracing::error!("{e:?}");
     (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
 
