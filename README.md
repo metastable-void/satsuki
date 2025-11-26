@@ -56,23 +56,6 @@ All DNS data stays in PowerDNS.
 
 ## Architecture
 
-```
-pdns-frontend
- ├─ src/
- │   ├─ api/               → axum handlers
- │   ├─ auth/              → Basic-auth extractor + Argon2 hashing
- │   ├─ db/                → SQLite models & repo
- │   ├─ powerdns/          → PowerDNS client & types
- │   ├─ validation.rs      → domain label validation
- │   ├─ builder.rs         → configurable server builder
- │   ├─ config.rs
- │   ├─ error.rs           → AppError with IntoResponse
- │   └─ main.rs            → CLI binary (via Clap)
- ├─ migrations/
- │   └─ 0001_init.sql
- └─ Cargo.toml
-```
-
 ### Components
 
 * **Rust (server)**
@@ -93,12 +76,12 @@ pdns-frontend
 
 ## Configuration
 
-`pdns-frontend` uses a flexible builder pattern that is configured from the CLI.
+`satsuki-pdns-frontend` uses a flexible builder pattern that is configured from the CLI.
 
 ### Example invocation
 
 ```sh
-pdns-frontend \
+satsuki-pdns-frontend \
   --base-domain example.com \
   --db-path ./data/users.sqlite \
   --listen 0.0.0.0:8080 \
