@@ -232,6 +232,15 @@ CREATE TABLE IF NOT EXISTS users (
 * SQLite3
 * PowerDNS running (2 instances ideally)
 * `sqlx-cli` (optional for migrations)
+* Node.js 18+ (for the React/Vite frontend under `frontend/`)
+
+### Frontend (React + Vite)
+
+```sh
+npm install
+npm run dev     # serves frontend from ./frontend
+npm run build   # emits static assets into ./dist
+```
 
 ### Running in dev mode
 
