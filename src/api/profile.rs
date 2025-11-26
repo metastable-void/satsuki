@@ -13,6 +13,10 @@ pub struct ProfileDto {
     pub external_ns: bool,
     pub external_ns1: Option<String>,
     pub external_ns2: Option<String>,
+    pub external_ns3: Option<String>,
+    pub external_ns4: Option<String>,
+    pub external_ns5: Option<String>,
+    pub external_ns6: Option<String>,
 }
 
 pub async fn get_profile(
@@ -24,6 +28,10 @@ pub async fn get_profile(
         external_ns: user.external_ns,
         external_ns1: user.external_ns1.clone(),
         external_ns2: user.external_ns2.clone(),
+        external_ns3: user.external_ns3.clone(),
+        external_ns4: user.external_ns4.clone(),
+        external_ns5: user.external_ns5.clone(),
+        external_ns6: user.external_ns6.clone(),
     }))
 }
 

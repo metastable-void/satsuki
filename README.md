@@ -239,11 +239,13 @@ Returns the logged-in user’s metadata:
   "subdomain": "alice",
   "external_ns": false,
   "external_ns1": null,
-  "external_ns2": null
+  "external_ns2": null,
+  "external_ns3": null,
+  "external_ns4": null,
+  "external_ns5": null,
+  "external_ns6": null
 }
 ```
-
-Additional `external_ns3`–`external_ns6` values are persisted in the database, but only the first two are exposed today because the UI design only surfaces two slots.
 
 ---
 
