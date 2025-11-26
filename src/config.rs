@@ -2,6 +2,8 @@
 pub struct AppConfig {
     pub base_domain: String,
     pub internal_ns: Vec<String>, // "ns1.example.net.", ...
+    pub internal_main_ns: String, // "ns1.example.net.", used in SOA
+    pub internal_contact: String, // "hostmaster.example.net.", used in SOA
 }
 
 impl AppConfig {
