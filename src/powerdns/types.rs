@@ -18,6 +18,8 @@ pub struct PdnsRrset {
     pub ttl: u32,
     pub changetype: Option<String>, // "REPLACE" / "DELETE" when patching
     pub records: Vec<PdnsRecord>,
+    #[serde(default)]
+    pub comments: Vec<PdnsComment>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,6 +27,13 @@ pub struct PdnsRecord {
     pub content: String, // "192.0.2.1" or "ns1.example.net."
     #[serde(default)]
     pub disabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PdnsComment {
+    pub content: String,
+    pub account: String,
+    pub modified_at: String,
 }
 
 // Used when creating a zone

@@ -124,6 +124,7 @@ pub async fn put_zone(
             ttl,
             changetype: Some("REPLACE".into()),
             records,
+            comments: Vec::new(),
         });
     }
 

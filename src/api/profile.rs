@@ -56,6 +56,7 @@ pub async fn set_ns_internal(
                 disabled: false,
             })
             .collect(),
+        comments: Vec::new(),
     };
     state
         .base_pdns
@@ -124,6 +125,7 @@ pub async fn set_ns_external(
                 disabled: false,
             })
             .collect(),
+        comments: Vec::new(),
     };
     state
         .base_pdns

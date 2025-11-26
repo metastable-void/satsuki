@@ -178,6 +178,7 @@ async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_nam
         ttl: 300,
         changetype: Some("DELETE".into()),
         records: Vec::new(),
+        comments: Vec::new(),
     };
 
     let _ = state
@@ -258,6 +259,7 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
                 disabled: false,
             })
             .collect(),
+        comments: Vec::new(),
     }
 }
 
@@ -280,5 +282,6 @@ fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
             content,
             disabled: false,
         }],
+        comments: Vec::new(),
     }
 }
