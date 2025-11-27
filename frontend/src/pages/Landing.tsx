@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   API_BASE,
   compareDomain,
+  decodeDomain,
   joinApiUrl,
   NsListEntry,
 } from "../lib/api.js";
@@ -188,9 +189,11 @@ export default function LandingPage() {
     }
   };
 
+  const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
+
   const manageLabel =
-    credentials && baseDomain
-      ? `Manage ${credentials.subdomain}.${baseDomain}`
+    credentials && decodedBaseDomain
+      ? `Manage ${credentials.subdomain}.${decodedBaseDomain}`
       : null;
 
   return (
@@ -219,7 +222,7 @@ export default function LandingPage() {
                 spellCheck={false}
               />
               <span className="domain-input__suffix">
-                .{baseDomain || "example.com"}
+                .{decodedBaseDomain || "example.com"}
               </span>
             </div>
           </label>

@@ -1,3 +1,5 @@
+import { toUnicode } from "punycode";
+
 export interface Credentials {
   subdomain: string;
   password: string;
@@ -88,3 +90,21 @@ export interface NsListEntry {
   name: string;
   records: string[];
 }
+
+export const decodeDomain = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  return trimmed
+    .split(".")
+    .map((label) => {
+      if (!label) return label;
+      try {
+        return toUnicode(label);
+      } catch {
+        return label;
+      }
+    })
+    .join(".");
+};

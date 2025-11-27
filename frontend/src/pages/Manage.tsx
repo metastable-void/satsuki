@@ -8,6 +8,7 @@ import {
   RecordDto,
 } from "../lib/api.js";
 import { useAuth } from "../App.js";
+import { toASCII, toUnicode } from "punycode";
 
 type EditableRecord = RecordDto & { id: string };
 
@@ -46,6 +47,42 @@ const toRelativeRecordName = (fqdn: string, zoneName: string) => {
   }
 
   return trimmed.endsWith(".") ? trimmed.slice(0, -1) : trimmed;
+};
+
+const decodeRelativeName = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "@") {
+    return trimmed;
+  }
+  return trimmed
+    .split(".")
+    .map((label) => {
+      if (!label) return label;
+      try {
+        return toUnicode(label);
+      } catch {
+        return label;
+      }
+    })
+    .join(".");
+};
+
+const encodeRelativeName = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "@") {
+    return trimmed;
+  }
+  return trimmed
+    .split(".")
+    .map((label) => {
+      if (!label) return label;
+      try {
+        return toASCII(label);
+      } catch {
+        return label;
+      }
+    })
+    .join(".");
 };
 
 export default function ManagePage() {
@@ -146,7 +183,7 @@ export default function ManagePage() {
       setRecords(
         data.map((rec, idx) => ({
           ...rec,
-          name: toRelativeRecordName(rec.name, zoneName),
+          name: decodeRelativeName(toRelativeRecordName(rec.name, zoneName)),
           id: `${rec.name}-${rec.rrtype}-${idx}-${makeId()}`,
         })),
       );
@@ -277,7 +314,7 @@ export default function ManagePage() {
       return;
     }
     const payload = records.map((record) => ({
-      name: record.name.trim(),
+      name: encodeRelativeName(record.name),
       rrtype: record.rrtype.trim().toUpperCase(),
       ttl: Number(record.ttl) || 300,
       content: record.content.trim(),
