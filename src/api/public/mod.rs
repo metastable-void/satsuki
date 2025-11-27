@@ -38,6 +38,13 @@ pub async fn signup(
         return Err((axum::http::StatusCode::CONFLICT, "already exists".into()));
     }
 
+    if dns_label_occupied(&state, &req.subdomain)
+        .await
+        .map_err(internal)?
+    {
+        return Err((axum::http::StatusCode::CONFLICT, "already exists".into()));
+    }
+
     if state.config.internal_ns.is_empty() {
         return Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -161,7 +168,13 @@ pub async fn check_subdomain(
         .await
         .map_err(AppError::internal)?;
 
-    Ok(Json(CheckSubdomainResponse { available: !exists }))
+    let dns_exists = dns_label_occupied(&state, name)
+        .await
+        .map_err(AppError::internal)?;
+
+    Ok(Json(CheckSubdomainResponse {
+        available: !(exists || dns_exists),
+    }))
 }
 
 fn is_unique_violation(err: &SqlxError) -> bool {
@@ -261,6 +274,26 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
             .collect(),
         comments: Vec::new(),
     }
+}
+
+async fn dns_label_occupied(state: &SharedState, subdomain: &str) -> anyhow::Result<bool> {
+    let parent_zone = state.config.parent_zone_name();
+    let desired = normalize_dns_name(&state.config.user_zone_name(subdomain));
+    let zone = state.base_pdns.get_zone(&parent_zone).await?;
+
+    if let Some(rrsets) = zone.rrsets {
+        for rr in rrsets {
+            if normalize_dns_name(&rr.name) == desired {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+fn normalize_dns_name(name: &str) -> String {
+    name.trim_end_matches('.').to_ascii_lowercase()
 }
 
 fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
