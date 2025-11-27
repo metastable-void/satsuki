@@ -6,10 +6,11 @@ use crate::error::AppError;
 use crate::powerdns::types::{PdnsRecord, PdnsRrset, PdnsZoneCreate};
 use crate::validation::validate_subdomain_name;
 use crate::{SharedState, auth::hash_password};
-use axum::{Extension, Json};
+use axum::{Extension, Json, http::header, response::IntoResponse};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
+use std::collections::BTreeSet;
 
 /// Payload for creating a brand-new delegated subdomain.
 #[derive(Deserialize)]
@@ -298,6 +299,35 @@ pub async fn parent_zone_soa(
     Err((
         axum::http::StatusCode::NOT_FOUND,
         "SOA record not found".into(),
+    ))
+}
+
+/// Prometheus metrics endpoint exporting subdomain counts.
+pub async fn metrics(
+    Extension(state): Extension<SharedState>,
+) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
+    let parent_zone = state.config.parent_zone_name();
+    let zone = state
+        .base_pdns
+        .get_zone(&parent_zone)
+        .await
+        .map_err(internal)?;
+
+    let mut subdomains: BTreeSet<String> = BTreeSet::new();
+    if let Some(rrsets) = zone.rrsets {
+        for rr in rrsets.into_iter().filter(|rr| rr.rrtype.eq_ignore_ascii_case("NS")) {
+            let owner = normalize_dns_name(&rr.name);
+            if owner == normalize_dns_name(&parent_zone) {
+                continue;
+            }
+            subdomains.insert(owner);
+        }
+    }
+
+    let body = format!("satsuki_subdomains_total {}\n", subdomains.len());
+    Ok((
+        [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],
+        body,
     ))
 }
 

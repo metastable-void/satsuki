@@ -30,6 +30,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/about", get(public::about))
         .route("/api/subdomain/soa", get(public::parent_zone_soa))
         .route("/api/subdomain/list", get(public::list_ns_records))
+        .route("/metrics", get(public::metrics))
         // authenticated
         .route("/api/zone", get(dns::get_zone).put(dns::put_zone))
         .route("/api/ns-mode/internal", post(profile::set_ns_internal))

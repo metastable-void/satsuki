@@ -213,6 +213,14 @@ Returns the parent-zone SOA line used by the frontend’s BIND-style helper:
 { "soa": "ns1.example.net. hostmaster.example.net. 2024010101 7200 900 1209600 300" }
 ```
 
+#### `GET /metrics`
+
+Exports Prometheus text metrics, currently `satsuki_subdomains_total`, which counts unique delegated subdomains (i.e., non-apex NS RRsets in the parent zone):
+
+```
+satsuki_subdomains_total 42
+```
+
 ### Authenticated Endpoints
 
 All authenticated endpoints require:
