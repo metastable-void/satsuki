@@ -129,6 +129,8 @@ export default function LandingPage() {
     };
   }, [subdomain]);
 
+  const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
+
   const bindLines = useMemo(() => {
     const sections = nsList
       .map((entry) =>
@@ -136,15 +138,16 @@ export default function LandingPage() {
       )
       .filter(Boolean);
     const parts: string[] = [];
+    const soaOwner = decodedBaseDomain || baseDomain || ".";
     const soa = soaLine?.trim();
     if (soa) {
-      parts.push(soa);
+      parts.push(`${soaOwner}\tIN\tSOA\t${soa}`);
     }
     if (sections.length) {
       parts.push(sections.join("\n\n"));
     }
     return parts.join("\n\n");
-  }, [nsList, soaLine]);
+  }, [decodedBaseDomain, nsList, soaLine]);
 
   const showSignIn = availability.kind === "existing";
   const showSignUp = availability.kind === "available";
@@ -217,7 +220,6 @@ export default function LandingPage() {
     }
   };
 
-  const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
 
   useEffect(() => {
     document.title = decodedBaseDomain || "Satsuki Admin";
