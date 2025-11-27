@@ -450,38 +450,37 @@ export default function ManagePage() {
           <span>Use our DNS nameservers</span>
         </label>
 
-        <div className="ns-inputs">
-          <div className="ns-inputs__header">
-            <h3>External nameservers</h3>
-            {useInternalNs && <span className="muted">(disabled)</span>}
+        {!useInternalNs && (
+          <div className="ns-inputs">
+            <div className="ns-inputs__header">
+              <h3>External nameservers</h3>
+            </div>
+            {nsValues.map((value, idx) => (
+              <label key={idx}>
+                NS #{idx + 1}
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => {
+                    const next = [...nsValues];
+                    next[idx] = e.target.value;
+                    setNsValues(next);
+                  }}
+                  placeholder="ns1.example.net."
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={saveExternalNames}
+            >
+              Save nameservers
+            </button>
           </div>
-          {nsValues.map((value, idx) => (
-            <label key={idx}>
-              NS #{idx + 1}
-              <input
-                type="text"
-                value={value}
-                disabled={useInternalNs}
-                onChange={(e) => {
-                  const next = [...nsValues];
-                  next[idx] = e.target.value;
-                  setNsValues(next);
-                }}
-                placeholder="ns1.example.net."
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-              />
-            </label>
-          ))}
-          <button
-            type="button"
-            disabled={useInternalNs}
-            onClick={saveExternalNames}
-          >
-            Save nameservers
-          </button>
-        </div>
+        )}
         {profileMessage && <p className="status">{profileMessage}</p>}
       </section>
 
