@@ -3,7 +3,10 @@ use super::public::internal;
 use crate::db::user_repo;
 use crate::powerdns::types::{PdnsRecord, PdnsRrset};
 use crate::validation::validate_fqdn_ascii;
-use crate::{SharedState, auth::Authenticated};
+use crate::{
+    SharedState,
+    auth::{self, Authenticated},
+};
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
@@ -146,6 +149,44 @@ pub async fn set_ns_external(
     let ns6 = validated_ns.get(5).cloned();
 
     user_repo::set_external_ns(&state.db, user.id, true, ns1, ns2, ns3, ns4, ns5, ns6)
+        .await
+        .map_err(internal)?;
+
+    Ok(Json(serde_json::json!({ "ok": true })))
+}
+
+/// Request body for updating the user's password.
+#[derive(Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+/// Change the caller's password after verifying the current secret.
+pub async fn change_password(
+    Authenticated(user): Authenticated,
+    Extension(state): Extension<SharedState>,
+    Json(req): Json<ChangePasswordRequest>,
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
+    if req.new_password.trim().len() < 8 {
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "new password must be at least 8 characters".into(),
+        ));
+    }
+
+    let valid_current = auth::verify_password(&user.password_hash, &req.current_password)
+        .map_err(internal)?;
+
+    if !valid_current {
+        return Err((
+            axum::http::StatusCode::UNAUTHORIZED,
+            "current password is incorrect".into(),
+        ));
+    }
+
+    let new_hash = auth::hash_password(&req.new_password).map_err(internal)?;
+    user_repo::update_password(&state.db, user.id, &new_hash)
         .await
         .map_err(internal)?;
 

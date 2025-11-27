@@ -169,3 +169,26 @@ pub async fn update_last_login(db: &SqlitePool, user_id: i64) -> sqlx::Result<()
 
     Ok(())
 }
+
+/// Replace the stored password hash and bump `updated_at`.
+pub async fn update_password(
+    db: &SqlitePool,
+    user_id: i64,
+    password_hash: &str,
+) -> sqlx::Result<()> {
+    let now = Utc::now();
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET password_hash = ?, updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(password_hash)
+    .bind(now)
+    .bind(user_id)
+    .execute(db)
+    .await?;
+
+    Ok(())
+}

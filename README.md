@@ -288,6 +288,19 @@ Returns the logged-in user’s metadata:
 }
 ```
 
+#### `POST /api/password/change`
+
+Allows a logged-in user to rotate their password without re-registering. Requires the current password and a new secret (minimum 8 characters):
+
+```json
+{
+  "current_password": "supers3cret",
+  "new_password": "evenB3tter!"
+}
+```
+
+Invalid current passwords return `401`; successful changes return `{"ok": true}`.
+
 ---
 
 ## Database Schema

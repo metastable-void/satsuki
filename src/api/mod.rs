@@ -34,6 +34,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/zone", get(dns::get_zone).put(dns::put_zone))
         .route("/api/ns-mode/internal", post(profile::set_ns_internal))
         .route("/api/ns-mode/external", post(profile::set_ns_external))
+        .route("/api/password/change", post(profile::change_password))
         .route("/api/profile", get(profile::get_profile))
         .layer(cors)
         .layer(Extension(state))
