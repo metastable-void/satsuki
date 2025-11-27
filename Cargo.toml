@@ -13,6 +13,8 @@ include = [
     "dist/**",
 ]
 
+exclude = ["node_modules/**", ".env"]
+
 authors = ["metastable-void"]
 description = "A Rust-based web frontend for delegating and managing subdomains under a configured base domain using PowerDNS. Users can register a subdomain, authenticate using Basic Auth, and manage DNS records through a simple API. Simple Web UI included."
 license = "Apache-2.0 OR MPL-2.0"
