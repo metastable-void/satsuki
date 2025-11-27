@@ -232,23 +232,11 @@ export default function ManagePage() {
           headers: { Authorization: authHeader },
         });
         if (!res.ok) throw new Error("Failed to switch to internal NS");
+        await fetchProfile();
       } else {
-        const filtered = nsValues.map((ns) => ns.trim()).filter(Boolean);
-        if (!filtered.length) {
-          setProfileMessage("Provide at least one nameserver to switch to external mode.");
-          return;
-        }
-        const res = await fetch(joinApiUrl("/api/ns-mode/external"), {
-          method: "POST",
-          headers: {
-            Authorization: authHeader,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ns: filtered }),
-        });
-        if (!res.ok) throw new Error("Failed to switch to external NS");
+        setProfile((prev) => (prev ? { ...prev, external_ns: true } : prev));
+        setProfileMessage("Enter your external nameservers below, then save them.");
       }
-      await fetchProfile();
     } catch (err) {
       console.error(err);
       setProfileMessage(
