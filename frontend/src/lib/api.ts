@@ -41,6 +41,29 @@ export function storeCredentials(creds: Credentials | null) {
   localStorage.setItem(storageKeys.creds, JSON.stringify(creds));
 }
 
+export function compareDomain(d1: string, d2: string): -1 | 0 | 1 {
+  const d1Parts = String(d1).replace(/\.$/, '').split('.').reverse();
+  const d2Parts = String(d2).replace(/\.$/, '').split('.').reverse();
+  const minLen = Math.min(d1Parts.length, d2Parts.length);
+  for (let i = 0; i < minLen; i++) {
+    const d1 = d1Parts[i].toLowerCase();
+    const d2 = d2Parts[i].toLowerCase();
+    if (d1 < d2) {
+      return -1;
+    } else if (d1 > d2) {
+      return 1;
+    }
+  }
+
+  if (d1Parts.length > d2Parts.length) {
+    return 1;
+  } else if (d1Parts.length < d2Parts.length) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
 export interface RecordDto {
   id?: string;
   name: string;

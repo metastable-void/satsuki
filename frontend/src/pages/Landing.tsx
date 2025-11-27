@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   API_BASE,
+  compareDomain,
   joinApiUrl,
   NsListEntry,
 } from "../lib/api.js";
@@ -54,6 +55,10 @@ export default function LandingPage() {
         const res = await fetch(joinApiUrl("/api/subdomain/list"));
         if (!res.ok) throw new Error(`NS list failed with ${res.status}`);
         const data = (await res.json()) as NsListEntry[];
+        data.sort((e1, e2) => compareDomain(e1.name, e2.name));
+        data.forEach((e) => {
+          e.records.sort((r1, r2) => compareDomain(r1, r2));
+        });
         setNsList(data);
         setNsError(null);
       } catch (err) {
