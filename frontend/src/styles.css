@@ -42,10 +42,12 @@ main.page {
 
 .landing-page .domain-panel {
   max-width: 720px;
+  margin-inline: auto;
 }
 
 .landing-page .ns-panel {
-  max-width: 720px;
+  max-width: 960px;
+  margin-inline: auto;
 }
 
 h1,
