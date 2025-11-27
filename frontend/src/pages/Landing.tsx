@@ -110,10 +110,11 @@ export default function LandingPage() {
 
   const bindLines = useMemo(() => {
     return nsList
-      .flatMap((entry) =>
-        entry.records.map((record: string) => `${entry.name}\tIN\tNS\t${record}`),
+      .map((entry) =>
+        entry.records.map((record: string) => `${entry.name}\tIN\tNS\t${record}`).join("\n"),
       )
-      .join("\n");
+      .filter(Boolean)
+      .join("\n\n");
   }, [nsList]);
 
   const showSignIn = availability.kind === "existing";
