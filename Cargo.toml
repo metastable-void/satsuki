@@ -48,3 +48,8 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 [features]
 default = []
 https-client = ["reqwest/http2", "reqwest/rustls-tls"]
+
+[profile.release]
+strip = "symbols"
+codegen-units = 1
+lto = true
