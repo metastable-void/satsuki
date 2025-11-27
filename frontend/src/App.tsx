@@ -5,7 +5,14 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom";
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import LandingPage from "./pages/Landing.js";
 import ManagePage from "./pages/Manage.js";
 import {
@@ -34,6 +41,17 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [credentials, setCredentials] = useState<Credentials | null>(() =>
     loadCredentials(),
   );
+
+  useEffect(() => {
+    const handler = (event: StorageEvent) => {
+      if (event.key !== storageKeys.creds) {
+        return;
+      }
+      setCredentials(loadCredentials());
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
 
   const value = useMemo<AuthValue>(() => {
     return {

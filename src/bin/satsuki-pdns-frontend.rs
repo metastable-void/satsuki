@@ -221,6 +221,14 @@ fn embedded_response(path: &str, method: &Method) -> Option<Response<Body>> {
                 "public, max-age=31536000, immutable"
             },
         )
+        .header(
+            header::CONTENT_SECURITY_POLICY,
+            "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; \
+             script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
+             img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; \
+             object-src 'none'; upgrade-insecure-requests",
+        )
+        .header(header::REFERRER_POLICY, "no-referrer")
         .body(body)
         .ok()
 }
