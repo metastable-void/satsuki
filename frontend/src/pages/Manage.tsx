@@ -88,7 +88,7 @@ const encodeRelativeName = (value: string) => {
 };
 
 export default function ManagePage() {
-  const { credentials, signOut } = useAuth();
+  const { credentials, signOut, signIn } = useAuth();
   const navigate = useNavigate();
   const authHeader = useMemo(
     () => buildBasicAuthHeader(credentials!),
@@ -341,6 +341,7 @@ export default function ManagePage() {
       setPasswordMessage("New password must be at least 8 characters.");
       return;
     }
+    const nextPassword = passwordForm.next;
     setPasswordBusy(true);
     try {
       const res = await fetch(joinApiUrl("/api/password/change"), {
@@ -351,7 +352,7 @@ export default function ManagePage() {
         },
         body: JSON.stringify({
           current_password: passwordForm.current,
-          new_password: passwordForm.next,
+          new_password: nextPassword,
         }),
       });
       if (!res.ok) {
@@ -360,6 +361,9 @@ export default function ManagePage() {
       }
       setPasswordMessage("Password updated.");
       setPasswordForm({ current: "", next: "", confirm: "" });
+      if (credentials) {
+        signIn({ subdomain: credentials.subdomain, password: nextPassword });
+      }
     } catch (err) {
       console.error(err);
       setPasswordMessage(
@@ -508,7 +512,7 @@ export default function ManagePage() {
           const isKnownType = (RTYPES as readonly string[]).includes(normalizedType);
 
           return (
-          <div className="records-table__row" key={record.id}>
+            <div className="records-table__row" key={record.id}>
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Name</span>
                 <input
@@ -533,7 +537,9 @@ export default function ManagePage() {
                     </option>
                   ))}
                   {!isKnownType && (
-                    <option value={record.rrtype}>{record.rrtype}</option>
+                    <option value={normalizedType}>
+                      {record.rrtype || normalizedType}
+                    </option>
                   )}
                 </select>
               </label>

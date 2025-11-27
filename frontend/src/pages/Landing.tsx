@@ -225,6 +225,20 @@ export default function LandingPage() {
     document.title = decodedBaseDomain || "Satsuki Admin";
   }, [decodedBaseDomain]);
 
+  const normalizedParentZone = useMemo(() => {
+    if (!baseDomain) return null;
+    return `${baseDomain.trim().toLowerCase()}.`;
+  }, [baseDomain]);
+
+  const delegatedCount = useMemo(() => {
+    if (!normalizedParentZone) {
+      return nsList.length;
+    }
+    return nsList.filter(
+      (entry) => entry.name.trim().toLowerCase() !== normalizedParentZone,
+    ).length;
+  }, [nsList, normalizedParentZone]);
+
   const manageLabel =
     credentials && decodedBaseDomain
       ? `Go to ${credentials.subdomain}.${decodedBaseDomain}`
@@ -315,7 +329,7 @@ export default function LandingPage() {
       </section>
 
       <section className="panel ns-panel">
-        <h2>Nameserver delegation ({nsList.length - 1} subdomains)</h2>
+        <h2>Nameserver delegation ({delegatedCount} subdomains)</h2>
         {nsError && <p className="status error">{nsError}</p>}
         {soaError && <p className="status error">{soaError}</p>}
         {!nsList.length && !nsError && <p className="status">Loading…</p>}
