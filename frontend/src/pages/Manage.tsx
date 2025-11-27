@@ -18,6 +18,36 @@ const makeId = () =>
 
 const emptyNsValues = () => Array(6).fill("");
 
+interface AboutResponse {
+  base_domain: string;
+}
+
+const trimTrailingDot = (value: string) =>
+  value.endsWith(".") ? value.slice(0, -1) : value;
+
+const buildZoneName = (subdomain: string, baseDomain: string) =>
+  `${subdomain}.${trimTrailingDot(baseDomain)}.`;
+
+const toRelativeRecordName = (fqdn: string, zoneName: string) => {
+  const trimmed = fqdn.trim();
+  if (!trimmed) return "";
+
+  const lowerName = trimmed.toLowerCase();
+  const lowerZone = zoneName.toLowerCase();
+
+  if (lowerName === lowerZone) {
+    return "@";
+  }
+
+  if (lowerName.endsWith(lowerZone)) {
+    const prefix = trimmed.slice(0, trimmed.length - lowerZone.length);
+    const withoutDot = prefix.endsWith(".") ? prefix.slice(0, -1) : prefix;
+    return withoutDot || "@";
+  }
+
+  return trimmed.endsWith(".") ? trimmed.slice(0, -1) : trimmed;
+};
+
 export default function ManagePage() {
   const { credentials, signOut } = useAuth();
   const navigate = useNavigate();
@@ -33,8 +63,10 @@ export default function ManagePage() {
   const [recordsMessage, setRecordsMessage] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingRecords, setLoadingRecords] = useState(false);
+  const [baseDomain, setBaseDomain] = useState<string | null>(null);
 
   const useInternalNs = profile ? !profile.external_ns : true;
+  const recordsDisabled = !!profile?.external_ns;
 
   const fetchProfile = async () => {
     setLoadingProfile(true);
@@ -69,11 +101,34 @@ export default function ManagePage() {
     }
   };
 
+  const fetchBaseDomain = async () => {
+    try {
+      const res = await fetch(joinApiUrl("/api/about"));
+      if (!res.ok) {
+        throw new Error(`Failed to load DNS metadata (${res.status})`);
+      }
+      const data = (await res.json()) as AboutResponse;
+      setBaseDomain(data.base_domain);
+    } catch (err) {
+      console.error(err);
+      setRecordsMessage("Could not load DNS metadata.");
+    }
+  };
+
   const fetchZoneRecords = async () => {
-    if (!profile || profile.external_ns) {
+    if (!profile) {
       setRecords([]);
       return;
     }
+    if (profile.external_ns) {
+      setRecords([]);
+      return;
+    }
+    if (!baseDomain) {
+      return;
+    }
+    const zoneName = buildZoneName(profile.subdomain, baseDomain);
+
     setLoadingRecords(true);
     try {
       const res = await fetch(joinApiUrl("/api/zone"), {
@@ -91,6 +146,7 @@ export default function ManagePage() {
       setRecords(
         data.map((rec, idx) => ({
           ...rec,
+          name: toRelativeRecordName(rec.name, zoneName),
           id: `${rec.name}-${rec.rrtype}-${idx}-${makeId()}`,
         })),
       );
@@ -105,13 +161,14 @@ export default function ManagePage() {
 
   useEffect(() => {
     fetchProfile();
+    fetchBaseDomain();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchZoneRecords();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.external_ns]);
+  }, [profile?.external_ns, baseDomain]);
 
   const handleToggleNsMode = async (checked: boolean) => {
     if (!profile) return;
@@ -180,7 +237,7 @@ export default function ManagePage() {
       ...prev,
       {
         id: makeId(),
-        name: profile ? `${profile.subdomain}.` : "",
+        name: "@",
         rrtype: "A",
         ttl: 300,
         content: "",
@@ -349,41 +406,58 @@ export default function ManagePage() {
           </div>
           {records.map((record) => (
             <div className="records-table__row" key={record.id}>
-              <input
-                value={record.name}
-                disabled={profile?.external_ns}
-                onChange={(e) => updateRecord(record.id, "name", e.target.value)}
-              />
-              <input
-                value={record.rrtype}
-                disabled={profile?.external_ns}
-                onChange={(e) => updateRecord(record.id, "rrtype", e.target.value)}
-              />
-              <input
-                type="number"
-                value={record.ttl}
-                disabled={profile?.external_ns}
-                onChange={(e) => updateRecord(record.id, "ttl", e.target.value)}
-              />
-              <input
-                value={record.content}
-                disabled={profile?.external_ns}
-                onChange={(e) => updateRecord(record.id, "content", e.target.value)}
-              />
-              <input
-                type="number"
-                value={record.priority ?? ""}
-                disabled={profile?.external_ns}
-                onChange={(e) => updateRecord(record.id, "priority", e.target.value)}
-              />
-              <button
-                type="button"
-                className="ghost"
-                disabled={profile?.external_ns}
-                onClick={() => removeRecord(record.id)}
-              >
-                Remove
-              </button>
+              <label className="records-table__cell">
+                <span className="records-table__cell-label">Name</span>
+                <input
+                  value={record.name}
+                  disabled={recordsDisabled}
+                  onChange={(e) => updateRecord(record.id, "name", e.target.value)}
+                />
+              </label>
+              <label className="records-table__cell">
+                <span className="records-table__cell-label">Type</span>
+                <input
+                  value={record.rrtype}
+                  disabled={recordsDisabled}
+                  onChange={(e) => updateRecord(record.id, "rrtype", e.target.value)}
+                />
+              </label>
+              <label className="records-table__cell">
+                <span className="records-table__cell-label">TTL</span>
+                <input
+                  type="number"
+                  value={record.ttl}
+                  disabled={recordsDisabled}
+                  onChange={(e) => updateRecord(record.id, "ttl", e.target.value)}
+                />
+              </label>
+              <label className="records-table__cell">
+                <span className="records-table__cell-label">Content / Target</span>
+                <input
+                  value={record.content}
+                  disabled={recordsDisabled}
+                  onChange={(e) => updateRecord(record.id, "content", e.target.value)}
+                />
+              </label>
+              <label className="records-table__cell">
+                <span className="records-table__cell-label">Priority</span>
+                <input
+                  type="number"
+                  value={record.priority ?? ""}
+                  disabled={recordsDisabled}
+                  onChange={(e) => updateRecord(record.id, "priority", e.target.value)}
+                />
+              </label>
+              <div className="records-table__cell records-table__cell--action">
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={recordsDisabled}
+                  onClick={() => removeRecord(record.id)}
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -392,7 +466,7 @@ export default function ManagePage() {
           <button
             type="button"
             onClick={addRecord}
-            disabled={!!profile?.external_ns}
+            disabled={recordsDisabled}
             className="secondary"
           >
             Add record
@@ -400,7 +474,7 @@ export default function ManagePage() {
           <button
             type="button"
             onClick={saveRecords}
-            disabled={!!profile?.external_ns}
+            disabled={recordsDisabled}
           >
             Save records
           </button>

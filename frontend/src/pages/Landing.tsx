@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   API_BASE,
   joinApiUrl,
@@ -19,7 +19,7 @@ interface AboutResponse {
 }
 
 export default function LandingPage() {
-  const { signIn } = useAuth();
+  const { signIn, credentials } = useAuth();
   const navigate = useNavigate();
   const [baseDomain, setBaseDomain] = useState<string>("");
   const [nsList, setNsList] = useState<NsListEntry[]>([]);
@@ -182,8 +182,18 @@ export default function LandingPage() {
     }
   };
 
+  const manageLabel =
+    credentials && baseDomain
+      ? `Manage ${credentials.subdomain}.${baseDomain}`
+      : null;
+
   return (
     <main className="page landing-page">
+      {manageLabel && (
+        <p className="status">
+          <Link to="/manage">{manageLabel}</Link>
+        </p>
+      )}
       <section className="panel domain-panel">
         <h1>Manage your subdomain</h1>
         <p className="muted">
