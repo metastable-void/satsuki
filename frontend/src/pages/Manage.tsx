@@ -494,6 +494,7 @@ export default function ManagePage() {
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Content / Target</span>
                 <input
+                  type="text"
                   value={record.content}
                   disabled={recordsDisabled}
                   onChange={(e) => updateRecord(record.id, "content", e.target.value)}
@@ -511,11 +512,11 @@ export default function ManagePage() {
               <div className="records-table__cell records-table__cell--action">
                 <button
                   type="button"
-                  className="ghost"
+                  className="ghost material-symbols-outlined"
                   disabled={recordsDisabled}
                   onClick={() => removeRecord(record.id)}
                 >
-                  Remove
+                  delete
                 </button>
               </div>
             </div>
