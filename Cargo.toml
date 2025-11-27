@@ -5,12 +5,12 @@ edition = "2024"
 
 include = [
     "Cargo.toml",
-    "Cargo.lock",
-    "README.md",
-    "LICENSE.*",
-    "src/**",
-    "migrations/**",
-    "dist/**",
+    "/Cargo.lock",
+    "/README.md",
+    "/LICENSE.*",
+    "/src/**",
+    "/migrations/**",
+    "/dist/**",
 ]
 
 authors = ["metastable-void"]
