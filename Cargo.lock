@@ -1567,7 +1567,6 @@ dependencies = [
  "base64",
  "chrono",
  "clap",
- "idna_adapter",
  "lazy_static",
  "mime_guess",
  "rand_core 0.6.4",
