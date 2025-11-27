@@ -20,6 +20,7 @@ import {
   loadCredentials,
   storeCredentials,
 } from "./lib/api.js";
+import { storageKeys } from "./lib/api.js";
 
 interface AuthValue {
   credentials: Credentials | null;
