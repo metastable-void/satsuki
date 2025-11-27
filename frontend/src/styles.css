@@ -100,6 +100,18 @@ textarea {
   font: inherit;
 }
 
+/* For WebKit-based browsers (Chrome, Safari, Edge) */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0; /* Important for some older versions of Chrome to remove margin */
+}
+
+/* For other modern browsers (using standard appearance property) */
+input[type="number"] {
+  appearance: none;
+}
+
 input:is([type="text"], [type="password"], [type="number"]), select {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.4);

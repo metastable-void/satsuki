@@ -542,6 +542,9 @@ export default function ManagePage() {
                 <span className="records-table__cell-label">TTL</span>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="30"
+                  max="86400"
                   value={record.ttl}
                   disabled={recordsDisabled}
                   onChange={(e) => updateRecord(record.id, "ttl", e.target.value)}
