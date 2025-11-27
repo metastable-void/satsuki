@@ -152,6 +152,8 @@ button:disabled {
   border-radius: 0.8rem;
   padding: 1rem;
   font-size: 0.9rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
 }
 
 .manage-page {
