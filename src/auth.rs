@@ -1,4 +1,4 @@
-// src/auth.rs
+//! Basic-auth based authentication extractor plus password helpers.
 use axum::{
     Extension,
     extract::FromRequestParts,
@@ -15,6 +15,7 @@ use rand_core::OsRng;
 use crate::SharedState;
 use crate::db::user_repo::User;
 
+/// Axum extractor that verifies Basic credentials against the database.
 pub struct Authenticated(pub User);
 
 impl<S> FromRequestParts<S> for Authenticated
@@ -74,6 +75,7 @@ where
     }
 }
 
+/// Hash a plaintext password using Argon2 + random salt.
 pub fn hash_password(plain: &str) -> anyhow::Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
@@ -84,6 +86,7 @@ pub fn hash_password(plain: &str) -> anyhow::Result<String> {
     Ok(hash)
 }
 
+/// Verify a plaintext password against a stored Argon2 hash.
 pub fn verify_password(hash: &str, plain: &str) -> anyhow::Result<bool> {
     let parsed = PasswordHash::new(hash)
         .map_err(|_| anyhow::anyhow!("Failed to instantiate PasswordHash"))?;

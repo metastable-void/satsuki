@@ -1,3 +1,5 @@
+//! API module wiring together public and authenticated routes.
+
 pub mod dns;
 pub mod profile;
 pub mod public;
@@ -10,6 +12,7 @@ use axum::{
 use serde::Serialize;
 use tower_http::cors::{Any, CorsLayer};
 
+/// Build the Axum router tree with every public and authenticated endpoint.
 pub fn create_router(state: SharedState) -> Router {
     use crate::api::{dns, profile, public};
 
@@ -36,11 +39,13 @@ pub fn create_router(state: SharedState) -> Router {
         .layer(Extension(state))
 }
 
+/// Simple response body for `/health`.
 #[derive(Serialize)]
 struct HealthResponse {
     status: &'static str,
 }
 
+/// Lightweight health probe used by orchestrators.
 async fn health_check() -> Json<HealthResponse> {
     Json(HealthResponse { status: "ok" })
 }

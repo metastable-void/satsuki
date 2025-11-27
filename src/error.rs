@@ -1,4 +1,4 @@
-// src/error.rs
+//! Application error helpers and Axum integration.
 use axum::{
     Json,
     http::StatusCode,
@@ -7,11 +7,13 @@ use axum::{
 use serde::Serialize;
 use thiserror::Error;
 
+/// Standard JSON error payload emitted by the API.
 #[derive(Debug, Serialize)]
 pub struct ErrorResponseBody {
     pub error: String,
 }
 
+/// Common error cases surfaced to HTTP clients.
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("bad request: {0}")]
@@ -31,18 +33,22 @@ pub enum AppError {
 }
 
 impl AppError {
+    /// Convenience constructor for `400 Bad Request`.
     pub fn bad_request(msg: impl Into<String>) -> Self {
         AppError::BadRequest(msg.into())
     }
 
+    /// Convenience constructor for `409 Conflict`.
     pub fn conflict(msg: impl Into<String>) -> Self {
         AppError::Conflict(msg.into())
     }
 
+    /// Wrap any error into `500 Internal Server Error`.
     pub fn internal<E: std::error::Error + Send + Sync + 'static>(err: E) -> Self {
         AppError::Internal(anyhow::Error::new(err))
     }
 
+    /// Wrap an existing anyhow error into `AppError`.
     pub fn internal_anyhow(err: anyhow::Error) -> Self {
         AppError::Internal(err)
     }

@@ -1,3 +1,5 @@
+//! Public-facing API handlers for signup, authentication, and discovery.
+
 use crate::config::AppConfig;
 use crate::db::user_repo;
 use crate::error::AppError;
@@ -9,12 +11,14 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::Error as SqlxError;
 
+/// Payload for creating a brand-new delegated subdomain.
 #[derive(Deserialize)]
 pub struct SignupRequest {
     pub subdomain: String,
     pub password: String,
 }
 
+/// Create a user account and delegate the requested subdomain if available.
 pub async fn signup(
     Extension(state): Extension<SharedState>,
     Json(req): Json<SignupRequest>,
@@ -110,12 +114,14 @@ pub(crate) fn internal<E: std::fmt::Debug + std::fmt::Display>(e: E) -> (axum::h
     (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
 }
 
+/// Credentials used to authenticate an existing subdomain owner.
 #[derive(Deserialize)]
 pub struct SigninRequest {
     pub subdomain: String,
     pub password: String,
 }
 
+/// Authenticate a user against the stored password hash.
 pub async fn signin(
     Extension(state): Extension<SharedState>,
     Json(req): Json<SigninRequest>,
@@ -145,11 +151,13 @@ pub async fn signin(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
+/// Response indicating whether a requested label may be registered.
 #[derive(Serialize)]
 pub struct CheckSubdomainResponse {
     available: bool,
 }
 
+/// Validate syntax, reservation list, database, and DNS occupancy for a label.
 pub async fn check_subdomain(
     Extension(state): Extension<SharedState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -184,6 +192,7 @@ fn is_unique_violation(err: &SqlxError) -> bool {
     }
 }
 
+/// Best-effort cleanup if any step of signup fails after DNS writes.
 async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_name: &str) {
     let delete_rrset = PdnsRrset {
         name: zone_name.to_string(),
@@ -201,11 +210,13 @@ async fn cleanup_partial_signup(state: &SharedState, parent_zone: &str, zone_nam
     let _ = state.sub_pdns.delete_zone(zone_name).await;
 }
 
+/// Public description of the base domain the service manages.
 #[derive(Serialize)]
 pub struct AboutResponse {
     pub base_domain: String,
 }
 
+/// Return the base domain so clients can build FQDNs locally.
 pub async fn about(
     Extension(state): Extension<SharedState>,
 ) -> Result<Json<AboutResponse>, (axum::http::StatusCode, String)> {
@@ -214,17 +225,20 @@ pub async fn about(
     }))
 }
 
+/// Grouping of delegated label -> NS targets used on the landing page.
 #[derive(Serialize)]
 pub struct SubdomainListResponse {
     pub name: String,
     pub records: Vec<String>,
 }
 
+/// SOA response for the parent zone shown to unauthenticated users.
 #[derive(Serialize)]
 pub struct ParentSoaResponse {
     pub soa: String,
 }
 
+/// Enumerate all NS delegations under the parent zone.
 pub async fn list_ns_records(
     Extension(state): Extension<SharedState>,
 ) -> Result<Json<Vec<SubdomainListResponse>>, (axum::http::StatusCode, String)> {
@@ -256,6 +270,7 @@ pub async fn list_ns_records(
     Ok(Json(grouped))
 }
 
+/// Return the parent zone's SOA record so clients can copy/paste it.
 pub async fn parent_zone_soa(
     Extension(state): Extension<SharedState>,
 ) -> Result<Json<ParentSoaResponse>, (axum::http::StatusCode, String)> {
@@ -293,6 +308,7 @@ const SOA_RETRY: u32 = 900;
 const SOA_EXPIRE: u32 = 1_209_600;
 const SOA_MINIMUM: u32 = 300;
 
+/// Helper to construct the canonical NS RRset for a user zone.
 fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     PdnsRrset {
         name: zone_name.to_string(),
@@ -311,6 +327,7 @@ fn build_apex_ns_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     }
 }
 
+/// Inspect PowerDNS to determine if the label already has any RRsets.
 async fn dns_label_occupied(state: &SharedState, subdomain: &str) -> anyhow::Result<bool> {
     let parent_zone = state.config.parent_zone_name();
     let desired = normalize_dns_name(&state.config.user_zone_name(subdomain));
@@ -327,10 +344,12 @@ async fn dns_label_occupied(state: &SharedState, subdomain: &str) -> anyhow::Res
     Ok(false)
 }
 
+/// Normalize a DNS name by trimming its trailing dot and lowercasing.
 fn normalize_dns_name(name: &str) -> String {
     name.trim_end_matches('.').to_ascii_lowercase()
 }
 
+/// Helper to build the authoritative SOA RRset for a user zone.
 fn build_apex_soa_rrset(config: &AppConfig, zone_name: &str) -> PdnsRrset {
     let mname = config.internal_main_ns.clone();
     let contact = config.internal_contact.clone();

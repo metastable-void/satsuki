@@ -1,4 +1,4 @@
-// src/api/dns.rs
+//! Authenticated DNS management endpoints for user-owned zones.
 use super::public::internal;
 use crate::powerdns::types::{PdnsRecord, PdnsRrset};
 use crate::{SharedState, auth::Authenticated};
@@ -6,6 +6,7 @@ use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, btree_map::Entry};
 
+/// JSON representation of a DNS record row returned to the frontend.
 #[derive(Serialize, Deserialize)]
 pub struct RecordDto {
     pub name: String, // relative or FQDN, your choice
@@ -15,7 +16,7 @@ pub struct RecordDto {
     pub priority: Option<u16>, // for MX, SRV if you want
 }
 
-// GET /api/zone
+/// Return every user-manageable RRset in the caller's delegated zone.
 pub async fn get_zone(
     Authenticated(user): Authenticated,
     Extension(state): Extension<SharedState>,
@@ -53,12 +54,13 @@ pub async fn get_zone(
     Ok(Json(records))
 }
 
+/// Request payload describing the full set of records to retain.
 #[derive(Deserialize)]
 pub struct ZoneUpdateRequest {
     pub records: Vec<RecordDto>,
 }
 
-// PUT /api/zone
+/// Replace all mutable RRsets for the caller's zone with the provided data.
 pub async fn put_zone(
     Authenticated(user): Authenticated,
     Extension(state): Extension<SharedState>,
@@ -140,6 +142,7 @@ pub async fn put_zone(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
+/// Convert relative names or shorthands into the absolute owner within the zone.
 fn normalize_owner(name: &str, zone_name: &str) -> Result<String, String> {
     let trimmed = name.trim();
     if trimmed.is_empty() || trimmed == "@" {

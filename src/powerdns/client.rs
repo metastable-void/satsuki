@@ -1,7 +1,9 @@
+//! Thin async client for the PowerDNS HTTP API.
 use crate::powerdns::types::*;
 use reqwest::Client;
 use serde::Serialize;
 
+/// Convenience wrapper around reqwest with PowerDNS-specific helpers.
 #[derive(Clone)]
 pub struct PowerDnsClient {
     http: Client,
@@ -11,6 +13,7 @@ pub struct PowerDnsClient {
 }
 
 impl PowerDnsClient {
+    /// Construct a client for a specific PDNS server instance.
     pub fn new(
         base_url: impl Into<String>,
         api_key: impl Into<String>,
@@ -24,10 +27,12 @@ impl PowerDnsClient {
         }
     }
 
+    /// Attach the configured API key to the request.
     fn auth_header(&self, req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
         req.header("X-API-Key", &self.api_key)
     }
 
+    /// Build a fully-qualified PDNS URL for the provided path.
     fn url(&self, path: &str) -> String {
         format!(
             "{}/servers/{}/{}",
@@ -37,6 +42,7 @@ impl PowerDnsClient {
         )
     }
 
+    /// Fetch the authoritative view of a zone including rrsets.
     pub async fn get_zone(&self, name: &str) -> anyhow::Result<PdnsZone> {
         let url = self.url(&format!("zones/{}", name));
         let res = self.auth_header(self.http.get(url)).send().await?;
@@ -46,6 +52,7 @@ impl PowerDnsClient {
         Ok(res.json::<PdnsZone>().await?)
     }
 
+    /// Create a brand new zone managed by this PDNS server.
     pub async fn create_zone(&self, z: &PdnsZoneCreate) -> anyhow::Result<()> {
         let url = self.url("zones");
         let res = self.auth_header(self.http.post(url)).json(z).send().await?;
@@ -55,6 +62,7 @@ impl PowerDnsClient {
         Ok(())
     }
 
+    /// Atomically apply RRset changes to the given zone.
     pub async fn patch_rrsets(&self, zone_name: &str, rrsets: &[PdnsRrset]) -> anyhow::Result<()> {
         #[derive(Serialize)]
         struct PatchBody<'a> {
@@ -76,6 +84,7 @@ impl PowerDnsClient {
         Ok(())
     }
 
+    /// Delete a zone and all of its data.
     pub async fn delete_zone(&self, name: &str) -> anyhow::Result<()> {
         let url = self.url(&format!("zones/{}", name));
         let res = self.auth_header(self.http.delete(url)).send().await?;

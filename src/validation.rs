@@ -1,5 +1,7 @@
+//! Validation helpers for user-provided labels and FQDNs.
 use regex::Regex;
 
+/// Human-friendly validation errors surfaced to clients.
 #[derive(thiserror::Error, Debug)]
 pub enum ValidationError {
     #[error("subdomain is empty")]
@@ -39,6 +41,7 @@ pub fn validate_subdomain_name(name: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+/// Validate that each label of the dotted name is a valid ASCII subdomain.
 pub fn validate_fqdn_ascii(domain: &str) -> Result<(), ValidationError> {
     // require trailing dot for clarity, or add it yourself
     let d = domain.trim_end_matches('.');

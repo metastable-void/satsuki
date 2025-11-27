@@ -1,5 +1,7 @@
+//! Static application configuration and helpers around DNS naming.
 use std::borrow::Cow;
 
+/// Default label blacklist applied when no custom list is supplied.
 pub const DEFAULT_DISALLOWED_SUBDOMAINS: &[&str] = &[
     // Common service labels that should remain reserved for infrastructure hosts
     "www",
@@ -21,6 +23,7 @@ pub const DEFAULT_DISALLOWED_SUBDOMAINS: &[&str] = &[
     "test",
 ];
 
+/// Strongly-typed representation of server configuration.
 #[derive(Clone)]
 pub struct AppConfig {
     pub base_domain: String,
@@ -46,6 +49,7 @@ impl AppConfig {
         format!("{}.{}.", subdomain, self.base_domain_root())
     }
 
+    /// Check whether the user-provided label is on the reserved list.
     pub fn is_disallowed_subdomain(&self, label: &str) -> bool {
         let needle = label.to_ascii_lowercase();
         self.effective_disallowed_subdomains()
@@ -53,6 +57,7 @@ impl AppConfig {
             .any(|reserved| reserved.eq_ignore_ascii_case(&needle))
     }
 
+    /// Return either the custom list or the baked-in default.
     pub fn effective_disallowed_subdomains(&self) -> Cow<'_, [String]> {
         if self.disallowed_subdomains.is_empty() {
             Cow::Owned(

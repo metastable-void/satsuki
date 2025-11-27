@@ -1,4 +1,4 @@
-// src/api/profile.rs
+//! Authenticated profile endpoints for viewing and updating NS delegation.
 use super::public::internal;
 use crate::db::user_repo;
 use crate::powerdns::types::{PdnsRecord, PdnsRrset};
@@ -7,6 +7,7 @@ use crate::{SharedState, auth::Authenticated};
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
+/// Public profile information returned to signed-in users.
 #[derive(Serialize)]
 pub struct ProfileDto {
     pub subdomain: String,
@@ -19,6 +20,7 @@ pub struct ProfileDto {
     pub external_ns6: Option<String>,
 }
 
+/// Return the caller's profile metadata and NS configuration.
 pub async fn get_profile(
     Authenticated(user): Authenticated,
     Extension(_state): Extension<SharedState>,
@@ -35,6 +37,7 @@ pub async fn get_profile(
     }))
 }
 
+/// Switch the caller back to the operator-managed nameservers.
 pub async fn set_ns_internal(
     Authenticated(user): Authenticated,
     Extension(state): Extension<SharedState>,
@@ -73,11 +76,13 @@ pub async fn set_ns_internal(
     Ok(Json(serde_json::json!({ "ok": true })))
 }
 
+/// Payload describing the external NS list the user wants to delegate to.
 #[derive(Deserialize)]
 pub struct SetExternalNsRequest {
     pub ns: Vec<String>, // validate to be FQDNs with trailing dots
 }
 
+/// Configure custom nameservers for the caller and persist them in PDNS.
 pub async fn set_ns_external(
     Authenticated(user): Authenticated,
     Extension(state): Extension<SharedState>,

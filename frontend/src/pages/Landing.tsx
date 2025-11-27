@@ -141,7 +141,7 @@ export default function LandingPage() {
     const soaOwner = decodedBaseDomain || baseDomain || ".";
     const soa = soaLine?.trim();
     if (soa) {
-      parts.push(`${soaOwner}\tIN\tSOA\t${soa}`);
+      parts.push(`${soaOwner}.\tIN\tSOA\t${soa}`);
     }
     if (sections.length) {
       parts.push(sections.join("\n\n"));

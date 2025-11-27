@@ -1,3 +1,5 @@
+//! Crate entrypoint wiring together configuration, DB, PowerDNS, and APIs.
+
 pub mod api;
 pub mod auth;
 pub mod config;
@@ -12,6 +14,7 @@ use powerdns::client::PowerDnsClient;
 
 use std::sync::Arc;
 
+/// Complete application dependencies shared across handlers.
 pub struct AppState {
     pub config: AppConfig,
     pub db: Db,
@@ -19,4 +22,5 @@ pub struct AppState {
     pub sub_pdns: PowerDnsClient,
 }
 
+/// Arc-wrapped version of `AppState` passed into Axum extensions.
 pub type SharedState = Arc<AppState>;

@@ -1,5 +1,7 @@
+//! serde-compatible types mirroring PowerDNS JSON payloads.
 use serde::{Deserialize, Serialize};
 
+/// Zone representation returned by the PDNS API.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZone {
     pub id: String,   // "/api/.../zones/example.com."
@@ -10,6 +12,7 @@ pub struct PdnsZone {
     pub rrsets: Option<Vec<PdnsRrset>>,
 }
 
+/// RRset representation for records inside a zone.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsRrset {
     pub name: String, // "www.example.com."
@@ -22,6 +25,7 @@ pub struct PdnsRrset {
     pub comments: Vec<PdnsComment>,
 }
 
+/// Individual record content/flags stored inside an RRset.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsRecord {
     pub content: String, // "192.0.2.1" or "ns1.example.net."
@@ -29,6 +33,7 @@ pub struct PdnsRecord {
     pub disabled: bool,
 }
 
+/// Metadata comment attached to an RRset.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsComment {
     pub content: String,
@@ -36,7 +41,7 @@ pub struct PdnsComment {
     pub modified_at: String,
 }
 
-// Used when creating a zone
+/// Payload accepted by PDNS when creating a zone.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PdnsZoneCreate {
     pub name: String,             // "sub.base.example.com."

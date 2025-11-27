@@ -1,7 +1,8 @@
-// src/db/user_repo.rs
+//! Repository functions for manipulating rows in the `users` table.
 use chrono::{DateTime, Utc};
 use sqlx::{Row, SqlitePool};
 
+/// Application-level representation of a stored user.
 #[derive(Debug, Clone)]
 pub struct User {
     pub id: i64,
@@ -19,6 +20,7 @@ pub struct User {
     pub last_login_at: Option<DateTime<Utc>>,
 }
 
+/// Determine whether a subdomain already has a user row.
 pub async fn exists(db: &SqlitePool, subdomain: &str) -> sqlx::Result<bool> {
     let cnt: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE subdomain = ?")
         .bind(subdomain)
@@ -27,6 +29,7 @@ pub async fn exists(db: &SqlitePool, subdomain: &str) -> sqlx::Result<bool> {
     Ok(cnt.0 > 0)
 }
 
+/// Fetch a user and all NS metadata for the given subdomain.
 pub async fn find_by_subdomain(db: &SqlitePool, subdomain: &str) -> sqlx::Result<Option<User>> {
     let row = sqlx::query(
         r#"
@@ -73,6 +76,7 @@ pub async fn find_by_subdomain(db: &SqlitePool, subdomain: &str) -> sqlx::Result
     }))
 }
 
+/// Create a new user row when signup completes successfully.
 pub async fn insert(db: &SqlitePool, subdomain: &str, password_hash: &str) -> sqlx::Result<i64> {
     let now = Utc::now();
 
@@ -104,6 +108,7 @@ pub async fn insert(db: &SqlitePool, subdomain: &str, password_hash: &str) -> sq
     Ok(res.last_insert_rowid())
 }
 
+/// Persist the user's NS mode and up to six external nameservers.
 pub async fn set_external_ns(
     db: &SqlitePool,
     user_id: i64,
@@ -146,6 +151,7 @@ pub async fn set_external_ns(
     Ok(())
 }
 
+/// Update the user's last successful login timestamp.
 pub async fn update_last_login(db: &SqlitePool, user_id: i64) -> sqlx::Result<()> {
     let now = Utc::now();
     sqlx::query(
