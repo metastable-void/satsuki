@@ -25,6 +25,7 @@ pub fn create_router(state: SharedState) -> Router {
         .route("/api/signin", post(public::signin))
         .route("/api/subdomain/check", get(public::check_subdomain))
         .route("/api/about", get(public::about))
+        .route("/api/subdomain/soa", get(public::parent_zone_soa))
         .route("/api/subdomain/list", get(public::list_ns_records))
         // authenticated
         .route("/api/zone", get(dns::get_zone).put(dns::put_zone))

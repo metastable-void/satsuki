@@ -6,6 +6,7 @@ import {
   decodeDomain,
   joinApiUrl,
   NsListEntry,
+  ParentSoaResponse,
 } from "../lib/api.js";
 import { useAuth } from "../App.js";
 
@@ -26,6 +27,8 @@ export default function LandingPage() {
   const [baseDomain, setBaseDomain] = useState<string>("");
   const [nsList, setNsList] = useState<NsListEntry[]>([]);
   const [nsError, setNsError] = useState<string | null>(null);
+  const [soaLine, setSoaLine] = useState<string | null>(null);
+  const [soaError, setSoaError] = useState<string | null>(null);
 
   const [subdomain, setSubdomain] = useState("");
   const [availability, setAvailability] = useState<AvailabilityState>({
@@ -71,6 +74,23 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    const loadSoa = async () => {
+      try {
+        const res = await fetch(joinApiUrl("/api/subdomain/soa"));
+        if (!res.ok) throw new Error(`SOA fetch failed with ${res.status}`);
+        const data = (await res.json()) as ParentSoaResponse;
+        setSoaLine(data.soa.trim());
+        setSoaError(null);
+      } catch (err) {
+        console.error(err);
+        setSoaLine(null);
+        setSoaError("Failed to load SOA record");
+      }
+    };
+    loadSoa();
+  }, []);
+
+  useEffect(() => {
     const trimmed = subdomain.trim().toLowerCase();
     if (!trimmed) {
       setAvailability({ kind: "idle" });
@@ -110,13 +130,21 @@ export default function LandingPage() {
   }, [subdomain]);
 
   const bindLines = useMemo(() => {
-    return nsList
+    const sections = nsList
       .map((entry) =>
         entry.records.map((record: string) => `${entry.name}\tIN\tNS\t${record}`).join("\n"),
       )
-      .filter(Boolean)
-      .join("\n\n");
-  }, [nsList]);
+      .filter(Boolean);
+    const parts: string[] = [];
+    const soa = soaLine?.trim();
+    if (soa) {
+      parts.push(soa);
+    }
+    if (sections.length) {
+      parts.push(sections.join("\n\n"));
+    }
+    return parts.join("\n\n");
+  }, [nsList, soaLine]);
 
   const showSignIn = availability.kind === "existing";
   const showSignUp = availability.kind === "available";
@@ -287,6 +315,7 @@ export default function LandingPage() {
       <section className="panel ns-panel">
         <h2>Nameserver delegation ({nsList.length - 1} subdomains)</h2>
         {nsError && <p className="status error">{nsError}</p>}
+        {soaError && <p className="status error">{soaError}</p>}
         {!nsList.length && !nsError && <p className="status">Loading…</p>}
         {bindLines && (
           <pre className="bind-list">

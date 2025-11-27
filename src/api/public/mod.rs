@@ -220,6 +220,11 @@ pub struct SubdomainListResponse {
     pub records: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct ParentSoaResponse {
+    pub soa: String,
+}
+
 pub async fn list_ns_records(
     Extension(state): Extension<SharedState>,
 ) -> Result<Json<Vec<SubdomainListResponse>>, (axum::http::StatusCode, String)> {
@@ -249,6 +254,36 @@ pub async fn list_ns_records(
     }
 
     Ok(Json(grouped))
+}
+
+pub async fn parent_zone_soa(
+    Extension(state): Extension<SharedState>,
+) -> Result<Json<ParentSoaResponse>, (axum::http::StatusCode, String)> {
+    let parent_zone = state.config.parent_zone_name();
+    let zone = state
+        .base_pdns
+        .get_zone(&parent_zone)
+        .await
+        .map_err(internal)?;
+
+    if let Some(rrsets) = zone.rrsets {
+        for rr in rrsets {
+            if rr
+                .rrtype
+                .eq_ignore_ascii_case("SOA")
+                && normalize_dns_name(&rr.name) == normalize_dns_name(&parent_zone)
+            {
+                if let Some(record) = rr.records.into_iter().next() {
+                    return Ok(Json(ParentSoaResponse { soa: record.content }));
+                }
+            }
+        }
+    }
+
+    Err((
+        axum::http::StatusCode::NOT_FOUND,
+        "SOA record not found".into(),
+    ))
 }
 
 const NS_TTL: u32 = 300;

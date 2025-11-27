@@ -91,6 +91,10 @@ export interface NsListEntry {
   records: string[];
 }
 
+export interface ParentSoaResponse {
+  soa: string;
+}
+
 export const decodeDomain = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) {
