@@ -112,3 +112,20 @@ export const decodeDomain = (value: string) => {
     })
     .join(".");
 };
+
+export const RTYPES = [
+  'A',
+  'AAAA',
+  'CNAME',
+  'MX',
+  'NS',
+  'SRV',
+  'TXT',
+  'CAA',
+  'DS',
+  'DNAME',
+  'CSYNC',
+  'HTTPS',
+  'SVCB',
+  'URI',
+] as const;

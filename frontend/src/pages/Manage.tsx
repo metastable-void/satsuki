@@ -452,6 +452,7 @@ export default function ManagePage() {
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Name</span>
                 <input
+                  type="text"
                   value={record.name}
                   disabled={recordsDisabled}
                   onChange={(e) => updateRecord(record.id, "name", e.target.value)}
@@ -460,6 +461,7 @@ export default function ManagePage() {
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Type</span>
                 <input
+                  type="text"
                   value={record.rrtype}
                   disabled={recordsDisabled}
                   onChange={(e) => updateRecord(record.id, "rrtype", e.target.value)}
