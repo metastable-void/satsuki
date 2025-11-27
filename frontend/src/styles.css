@@ -136,6 +136,11 @@ button:disabled {
 .status {
   font-size: 0.95rem;
   color: rgba(248, 250, 252, 0.9);
+  text-align: end;
+}
+
+.status a {
+  color: inherit;
 }
 
 .status.error {

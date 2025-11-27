@@ -193,7 +193,7 @@ export default function LandingPage() {
 
   const manageLabel =
     credentials && decodedBaseDomain
-      ? `Manage ${credentials.subdomain}.${decodedBaseDomain}`
+      ? `Go to ${credentials.subdomain}.${decodedBaseDomain}`
       : null;
 
   return (
