@@ -191,6 +191,10 @@ export default function LandingPage() {
 
   const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
 
+  useEffect(() => {
+    document.title = decodedBaseDomain || "Satsuki Admin";
+  }, [decodedBaseDomain]);
+
   const manageLabel =
     credentials && decodedBaseDomain
       ? `Go to ${credentials.subdomain}.${decodedBaseDomain}`
@@ -281,7 +285,7 @@ export default function LandingPage() {
       </section>
 
       <section className="panel ns-panel">
-        <h2>Nameserver delegation ({nsList.length} labels)</h2>
+        <h2>Nameserver delegation ({nsList.length - 1} subdomains)</h2>
         {nsError && <p className="status error">{nsError}</p>}
         {!nsList.length && !nsError && <p className="status">Loading…</p>}
         {bindLines && (

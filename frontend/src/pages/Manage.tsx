@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   API_BASE,
   buildBasicAuthHeader,
+  decodeDomain,
   joinApiUrl,
   ProfileDto,
   RecordDto,
@@ -101,6 +102,11 @@ export default function ManagePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [baseDomain, setBaseDomain] = useState<string | null>(null);
+  const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
+
+  useEffect(() => {
+    document.title = decodedBaseDomain || "Satsuki Admin";
+  }, [decodedBaseDomain]);
 
   const useInternalNs = profile ? !profile.external_ns : true;
   const recordsDisabled = !!profile?.external_ns;
