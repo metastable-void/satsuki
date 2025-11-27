@@ -204,7 +204,7 @@ export default function LandingPage() {
         </p>
       )}
       <section className="panel domain-panel">
-        <h1>Manage your subdomain</h1>
+        <h1>{decodedBaseDomain || "example.com"}</h1>
         <p className="muted">
           API endpoint: <code>{API_BASE}</code>
         </p>
