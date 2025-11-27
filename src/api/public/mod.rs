@@ -324,7 +324,13 @@ pub async fn metrics(
         }
     }
 
-    let body = format!("satsuki_subdomains_total {}\n", subdomains.len());
+    let body = format!(
+        "# TYPE satsuki_subdomains_total gauge\n\
+# HELP satsuki_subdomains_total Number of delegated subdomains\n\
+satsuki_subdomains_total{{domain=\"{}\"}} {}\n",
+        normalize_dns_name(&parent_zone),
+        subdomains.len()
+    );
     Ok((
         [(header::CONTENT_TYPE, "text/plain; version=0.0.4")],
         body,
