@@ -170,7 +170,7 @@ pub async fn check_subdomain(
 
     let dns_exists = dns_label_occupied(&state, name)
         .await
-        .map_err(AppError::internal)?;
+        .map_err(AppError::internal_anyhow)?;
 
     Ok(Json(CheckSubdomainResponse {
         available: !(exists || dns_exists),

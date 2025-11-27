@@ -42,6 +42,10 @@ impl AppError {
     pub fn internal<E: std::error::Error + Send + Sync + 'static>(err: E) -> Self {
         AppError::Internal(anyhow::Error::new(err))
     }
+
+    pub fn internal_anyhow(err: anyhow::Error) -> Self {
+        AppError::Internal(err)
+    }
 }
 
 impl IntoResponse for AppError {
