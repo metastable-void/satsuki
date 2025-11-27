@@ -1,17 +1,26 @@
 # satsuki: PowerDNS frontend for managing subdomains
 
 A Rust-based web frontend for **delegating and managing subdomains** under a configured base domain using **PowerDNS**.
-Users can register a subdomain, authenticate using Basic Auth, and manage DNS records through a simple API (to be consumed by a TypeScript web UI).
+Users can register a subdomain, authenticate using Basic Auth, and manage DNS records through both a JSON API **and** the bundled React/Vite frontend under `frontend/`.
 
 This project contains:
 
 * A **backend** (`Rust`, `axum`, `tokio`)
 * A **PowerDNS integration layer**
 * A **SQLite database** containing only user metadata
-* A **TypeScript-friendly API** for a frontend
-* A **builder pattern** enabling embedding into other binaries
+* A **TypeScript frontend** (React + Vite) that consumes the API
+* A **builder-friendly CLI** (`satsuki-pdns-frontend`) for embedding or standalone use
 
 ---
+
+## Quick installation
+
+```bash
+# with Rustup
+cargo install satsuki
+```
+
+Or download pre-built binaries from [Releases](https://github.com/metastable-void/satsuki/releases).
 
 ## Features
 
@@ -27,13 +36,12 @@ Users select a subdomain (e.g., `alice`) → the system provisions:
 
 * Username = the subdomain name
 * Password = user-chosen
-* Frontend stores credentials in `sessionStorage`
+* Frontend stores credentials in `localStorage`
 * All API calls use `Authorization: Basic …`
 
 ### 🟦 DNS Record Management
 
-Users can read/write DNS RRsets for **their zone only**.
-NS at the apex is protected and controlled only via NS-mode endpoints.
+Users can read/write DNS RRsets for **their zone only**. The UI automatically normalizes relative owners, decodes IDNs for display, and punycodes them again on save. NS at the apex is protected and controlled only via NS-mode endpoints.
 
 ### 🟦 Switchable NS Mode
 
@@ -195,6 +203,14 @@ Fetches the NS RRsets from the base PowerDNS zone and groups them by owner name 
     "records": ["ns1.custom-dns.com.", "ns2.custom-dns.com."]
   }
 ]
+```
+
+#### `GET /api/subdomain/soa`
+
+Returns the parent-zone SOA line used by the frontend’s BIND-style helper:
+
+```json
+{ "soa": "ns1.example.net. hostmaster.example.net. 2024010101 7200 900 1209600 300" }
 ```
 
 ### Authenticated Endpoints
@@ -365,8 +381,7 @@ which runs automatically on startup.
 
 ## Future Enhancements
 
-* Web UI (TypeScript, not included here)
-* Metrics / health endpoint
+* Metrics / deeper health reporting
 * Zone cloning / templates
 * Audit logging
 * Account deletion workflow
