@@ -7,6 +7,7 @@ import {
   joinApiUrl,
   ProfileDto,
   RecordDto,
+  RTYPES,
 } from "../lib/api.js";
 import { useAuth } from "../App.js";
 import { toASCII, toUnicode } from "punycode";
@@ -447,8 +448,12 @@ export default function ManagePage() {
             <span>Priority</span>
             <span />
           </div>
-          {records.map((record) => (
-            <div className="records-table__row" key={record.id}>
+        {records.map((record) => {
+          const normalizedType = record.rrtype.toUpperCase();
+          const isKnownType = (RTYPES as readonly string[]).includes(normalizedType);
+
+          return (
+          <div className="records-table__row" key={record.id}>
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Name</span>
                 <input
@@ -460,12 +465,22 @@ export default function ManagePage() {
               </label>
               <label className="records-table__cell">
                 <span className="records-table__cell-label">Type</span>
-                <input
-                  type="text"
-                  value={record.rrtype}
+                <select
+                  value={normalizedType}
                   disabled={recordsDisabled}
-                  onChange={(e) => updateRecord(record.id, "rrtype", e.target.value)}
-                />
+                  onChange={(e) =>
+                    updateRecord(record.id, "rrtype", e.target.value.toUpperCase())
+                  }
+                >
+                  {RTYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                  {!isKnownType && (
+                    <option value={record.rrtype}>{record.rrtype}</option>
+                  )}
+                </select>
               </label>
               <label className="records-table__cell">
                 <span className="records-table__cell-label">TTL</span>
@@ -504,7 +519,8 @@ export default function ManagePage() {
                 </button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
 
         <div className="records-actions">

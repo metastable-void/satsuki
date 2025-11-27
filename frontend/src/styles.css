@@ -89,7 +89,7 @@ textarea {
   font: inherit;
 }
 
-input:is([type="text"], [type="password"], [type="number"]) {
+input:is([type="text"], [type="password"], [type="number"]), select {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.4);
   border-radius: 0.6rem;
