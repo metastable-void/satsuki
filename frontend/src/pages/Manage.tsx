@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   API_BASE,
   buildBasicAuthHeader,
@@ -401,12 +401,20 @@ export default function ManagePage() {
     <main className="page manage-page">
       <header className="manage-header">
         <div>
-          <h1>Subdomain manager</h1>
+          <h1>
+            Zone:{" "}
+            {profile && baseDomain
+              ? `${profile.subdomain}.${trimTrailingDot(baseDomain)}.`
+              : "…"}
+          </h1>
           <p className="muted">
             Connected to <code>{API_BASE}</code>
           </p>
         </div>
         <div className="header-actions">
+          <Link to="/" className="secondary">
+            Home
+          </Link>
           <span className="muted">
             Logged in as <strong>{profile?.subdomain ?? "…"}</strong>
           </span>
