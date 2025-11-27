@@ -103,6 +103,14 @@ export default function ManagePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingRecords, setLoadingRecords] = useState(false);
   const [baseDomain, setBaseDomain] = useState<string | null>(null);
+  const [passwordForm, setPasswordForm] = useState({
+    current: "",
+    next: "",
+    confirm: "",
+  });
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const decodedBaseDomain = baseDomain ? decodeDomain(baseDomain) : "";
 
   useEffect(() => {
@@ -314,6 +322,53 @@ export default function ManagePage() {
 
   const removeRecord = (id: string) =>
     setRecords((prev) => prev.filter((record) => record.id !== id));
+
+  const handlePasswordField = (field: "current" | "next" | "confirm", value: string) => {
+    setPasswordForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const changePassword = async () => {
+    setPasswordMessage(null);
+    if (!passwordForm.current || !passwordForm.next || !passwordForm.confirm) {
+      setPasswordMessage("Fill out all password fields.");
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordMessage("New password and confirmation do not match.");
+      return;
+    }
+    if (passwordForm.next.length < 8) {
+      setPasswordMessage("New password must be at least 8 characters.");
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const res = await fetch(joinApiUrl("/api/password/change"), {
+        method: "POST",
+        headers: {
+          Authorization: authHeader,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          current_password: passwordForm.current,
+          new_password: passwordForm.next,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to change password");
+      }
+      setPasswordMessage("Password updated.");
+      setPasswordForm({ current: "", next: "", confirm: "" });
+    } catch (err) {
+      console.error(err);
+      setPasswordMessage(
+        err instanceof Error ? err.message : "Failed to change password",
+      );
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
 
   const saveRecords = async () => {
     if (!records.length) {
@@ -542,6 +597,54 @@ export default function ManagePage() {
           </button>
         </div>
         {recordsMessage && <p className="status">{recordsMessage}</p>}
+      </section>
+
+      <section className="panel password-panel">
+        <div className="panel-header">
+          <h2>Change Password</h2>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => setPasswordOpen((prev) => !prev)}
+          >
+            {passwordOpen ? "Hide" : "Show"}
+          </button>
+        </div>
+        {passwordOpen && (
+          <div className="password-form">
+          <label>
+            Current password
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={passwordForm.current}
+              onChange={(e) => handlePasswordField("current", e.target.value)}
+            />
+          </label>
+          <label>
+            New password
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordForm.next}
+              onChange={(e) => handlePasswordField("next", e.target.value)}
+            />
+          </label>
+          <label>
+            Confirm new password
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={passwordForm.confirm}
+              onChange={(e) => handlePasswordField("confirm", e.target.value)}
+            />
+          </label>
+          <button type="button" onClick={changePassword} disabled={passwordBusy}>
+            {passwordBusy ? "Updating…" : "Update password"}
+          </button>
+          {passwordMessage && <p className="status">{passwordMessage}</p>}
+        </div>
+        )}
       </section>
     </main>
   );

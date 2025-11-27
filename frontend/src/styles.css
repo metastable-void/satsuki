@@ -275,6 +275,17 @@ button:disabled {
   margin-top: 1rem;
 }
 
+.password-panel .password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+}
+
+.password-panel .password-form > button {
+  align-self: flex-start;
+}
+
 @media (max-width: 900px) {
   .records-table__header {
     display: none;
