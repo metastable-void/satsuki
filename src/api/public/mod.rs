@@ -326,8 +326,8 @@ pub async fn metrics(
 
     let body = format!(
         "# TYPE satsuki_subdomains_total gauge\n\
-# HELP satsuki_subdomains_total Number of delegated subdomains\n\
-satsuki_subdomains_total{{domain=\"{}\"}} {}\n",
+# HELP satsuki_subdomains_totaldomain Number of delegated subdomains\n\
+satsuki_subdomains_total{{=\"{}\"}} {}\n",
         normalize_dns_name(&parent_zone),
         subdomains.len()
     );
